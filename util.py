@@ -83,12 +83,3 @@ def float_lt(a, b):
     EPSILON value.
     """
     return float(a) < float(b) - EPSILON
-
-
-def point_eq(a, b):
-    """Return whether two points (coordinate pairs) are "nearly" equal.
-
-    Two points are considered equal if the differences between their respective
-    ordinates are both less than the EPSILON value.
-    """
-    return float_eq(a[0], b[0]) and float_eq(a[1], b[1])

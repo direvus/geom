@@ -1,15 +1,14 @@
 import unittest
 
-
-import util
 import line
+import point
 import polygon
 
 
-class TestUtil(unittest.TestCase):
+class TestPoint(unittest.TestCase):
     def test_point_eq(self):
-        self.assertTrue(util.point_eq((1, 1), (1.0, 1.0)))
-        self.assertFalse(util.point_eq((1, 1), (1.0001, 1.0)))
+        self.assertEqual(point.Point((1, 1)), point.Point((1.0, 1.0)))
+        self.assertNotEqual(point.Point((1, 1)), point.Point((1.0001, 1.0)))
 
 
 class TestLine(unittest.TestCase):

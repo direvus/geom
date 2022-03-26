@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 # coding: utf-8
-from util import point_eq, float_eq, float_gt, float_lt
+from util import float_eq, float_gt, float_lt
+from point import Point
 
 
 class Line():
     def __init__(self, a, b):
-        if point_eq(a, b):
+        self.a = Point(a)
+        self.b = Point(b)
+
+        if a == b:
             raise ValueError("Invalid line: the two points are equal.")
-        self.a = a
-        self.b = b
 
     @property
     def is_horizontal(self):
@@ -62,6 +64,36 @@ class Line():
             return self.a[0]
         return self.a[0] + (y - self.a[1]) * 1 / self.gradient
 
+    def intersects_x(self, x):
+        """Return whether a line intersects with a vertical.
+
+        Return True if any point on the line, including its endpoints, lies at
+        the given 'x' value.  Vertical lines are not considered to intersect
+        any 'x' value.
+        """
+        if self.is_vertical:
+            return False
+        x1 = self.a.x
+        x2 = self.b.x
+        if x1 > x2:
+            x1, x2 = x2, x1
+        return not (float_gt(x1, x) or float_lt(x2, x))
+
+    def intersects_y(self, y):
+        """Return whether a line intersects with a horizontal.
+
+        Return True if any point on the line, including its endpoints, lies at
+        the given 'y' value.  Horizontal lines are not considered to intersect
+        any 'y' value.
+        """
+        if self.is_horizontal:
+            return False
+        y1 = self.a.y
+        y2 = self.b.y
+        if y1 > y2:
+            y1, y2 = y2, y1
+        return not (float_gt(y1, y) or float_lt(y2, y))
+
     def get_intersection(self, other):
         """Return the point of intersection between two lines.
 
@@ -112,41 +144,37 @@ def in_bound(a, b, p):
     """Return whether a given point lies within a boundary line.
 
     Given a line that runs from point 'a' to point 'b', and extends infinitely
-    in both directions, return whether the point 'p' lies on the right-hand
-    side of that line.  If the point lies exactly on the line, return None.
+    in both directions, return True if the point 'p' lies on the right-hand
+    side of that line, and False if it lies of the left-hand side.  If the
+    point lies exactly on the line, return None.
     """
-    # If A and B are equal, that doesn't define a line
-    if a == b:
-        raise ValueError(
-                "Boundary line must be described using two distinct points.")
+    line = Line(a, b)
+    a = line.a
+    b = line.b
+    p = Point(p)
 
     # Shortcut case: P is equal to A or B
-    if point_eq(a, p) or point_eq(b, p):
+    if a == p or b == p:
         return None
 
     # Shortcut case: horizontal or vertical lines
-    if a[1] == b[1]:
-        if float_eq(p[1], a[1]):
+    if line.is_horizontal:
+        if float_eq(p.y, a.y):
             return None
-        return p[1] < a[1] if a[0] < b[0] else p[1] > a[1]
+        return p.y < a.y if a.x < b.x else p.y > a.y
 
-    if a[0] == b[0]:
-        if float_eq(p[0], a[0]):
+    if line.is_vertical:
+        if float_eq(p.x, a.x):
             return None
-        return p[0] > a[0] if a[1] < b[1] else p[0] < a[0]
+        return p.x > a.x if a.y < b.y else p.x < a.x
 
     # Find the point on the line that has the same x-value as P, and then see
     # whether P lies above or below that point.
-    dx = b[0] - a[0]
-    dy = b[1] - a[1]
-    gradient = dy / dx
+    y = line.get_x_intercept(p.x)
 
-    x_dist = p[0] - a[0]
-    y = a[1] + x_dist * gradient
-
-    if float_eq(p[1], y):
+    if float_eq(p.y, y):
         return None
-    return p[1] < y if a[0] < b[0] else p[1] > y
+    return p.y < y if a.x < b.x else p.y > y
 
 
 def intersects_h(a, b, y):
@@ -156,11 +184,7 @@ def intersects_h(a, b, y):
     the points themselves, lies at the given 'y' value.  Horizontal lines are
     not considered to intersect any 'y' value.
     """
-    if a[1] == b[1]:
-        return False
-    if a[1] > b[1]:
-        a, b = b, a
-    return not (float_gt(a[1], y) or float_lt(b[1], y))
+    return Line(a, b).intersects_y(y)
 
 
 def intersects_v(a, b, x):
@@ -170,11 +194,7 @@ def intersects_v(a, b, x):
     the points themselves, lies at the given 'x' value.  Vertical lines are
     not considered to intersect any 'x' value.
     """
-    if a[0] == b[0]:
-        return False
-    if a[0] > b[0]:
-        a, b = b, a
-    return not (float_gt(a[0], x) or float_lt(b[0], x))
+    return Line(a, b).intersects_x(x)
 
 
 def get_intercept_h(a, b, y):
@@ -187,6 +207,7 @@ def get_intercept_h(a, b, y):
     Return None if the line between 'a' and 'b' is itself horizontal.
     """
     return Line(a, b).get_y_intercept(y)
+
 
 def get_intercept_v(a, b, x):
     """Return the y-value where a line intersects a vertical.
