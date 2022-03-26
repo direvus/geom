@@ -1,96 +1,9 @@
 #!/usr/bin/env python3
-from decimal import Decimal
+# coding: utf-8
 
 
-EPSILON = 0.000000001
-
-
-def flatten_coords(*args):
-    """Take arbitrarily structured coordinate pairs and flatten them.
-
-    The arguments may be structured in a variety of forms, for example:
-    - [(x0, y0), (x1, y1), ...]
-    - [x0, y0, x1, y1, ...]
-    - [{'x': x0, 'y': y0}, {'x': x1, 'y': y1}, ...]
-    - [{'lon': x0, 'lat': y0}, {'lon': x1, 'lat': y1}, ...]
-
-    The return is a flattened sequence of coordinate pairs, e.g.:
-    [x0, y0, x1, y1, ...]
-
-    If the inputs are sequences, their axis order will be preserved.  If the
-    inputs are dicts, the axis order will be returned in X, Y order (lon, lat).
-    """
-    result = []
-    for arg in args:
-        try:
-            keys = arg.keys()
-            if 'x' in keys and 'y' in keys:
-                result.append(arg['x'])
-                result.append(arg['y'])
-            elif 'lat' in keys and 'lon' in keys:
-                result.append(arg['lon'])
-                result.append(arg['lat'])
-            else:
-                raise ValueError(
-                        f"Unrecognised dictionary structure with keys {keys}. "
-                        "Expected x, y or lat, lon.")
-            continue
-        except AttributeError:
-            pass
-
-        try:
-            items = (x for x in arg)
-            result.extend(flatten_coords(*items))
-            continue
-        except TypeError:
-            pass
-
-        try:
-            result.append(Decimal(arg))
-        except ValueError:
-            raise ValueError(f"Unable to interpret {arg} as a Decimal value.")
-
-    if len(result) % 2 != 0:
-        raise ValueError(
-                f"Invalid number of coords {len(result)}. "
-                "Expected an even number.")
-    return result
-
-
-def float_eq(a, b):
-    """Return whether two floating point values are "nearly" equal.
-
-    Two floats are considered equal if the difference between them is less than
-    the EPSILON value.
-    """
-    return abs(float(a) - float(b)) < EPSILON
-
-
-def float_gt(a, b):
-    """Return whether one floating point value is greater than another.
-
-    'a' is considered greater than 'b' if it exceeds 'b' by at least the
-    EPSILON value.
-    """
-    return float(a) > float(b) + EPSILON
-
-
-def float_lt(a, b):
-    """Return whether one floating point value is less than another.
-
-    'a' is considered less than 'b' if it falls below 'b' by at least the
-    EPSILON value.
-    """
-    return float(a) < float(b) - EPSILON
-
-
-def point_eq(a, b):
-    """Return whether two points (coordinate pairs) are "nearly" equal.
-
-    Two points are considered equal if the differences between their respective
-    ordinates are both less than the EPSILON value.
-    """
-    return float_eq(a[0], b[0]) and float_eq(a[1], b[1])
+from line import in_bound, get_intercept_h, intersects_v, intersects_h
+from util import flatten_coords, float_eq, float_lt, float_gt, point_eq
 
 
 def get_bbox(*points):
@@ -149,92 +62,6 @@ def in_bbox(box, point, exact=True):
         return exact
 
     return True
-
-
-def in_bound(a, b, p):
-    """Return whether a given point lies within a boundary line.
-
-    Given a line that runs from point 'a' to point 'b', and extends infinitely
-    in both directions, return whether the point 'p' lies on the right-hand
-    side of that line.  If the point lies exactly on the line, return None.
-    """
-    # If A and B are equal, that doesn't define a line
-    if a == b:
-        raise ValueError(
-                "Boundary line must be described using two distinct points.")
-
-    # Shortcut case: P is equal to A or B
-    if point_eq(a, p) or point_eq(b, p):
-        return None
-
-    # Shortcut case: horizontal or vertical lines
-    if a[1] == b[1]:
-        if float_eq(p[1], a[1]):
-            return None
-        return p[1] < a[1] if a[0] < b[0] else p[1] > a[1]
-
-    if a[0] == b[0]:
-        if float_eq(p[0], a[0]):
-            return None
-        return p[0] > a[0] if a[1] < b[1] else p[0] < a[0]
-
-    # Find the point on the line that has the same x-value as P, and then see
-    # whether P lies above or below that point.
-    dx = b[0] - a[0]
-    dy = b[1] - a[1]
-    gradient = dy / dx
-
-    x_dist = p[0] - a[0]
-    y = a[1] + x_dist * gradient
-
-    if float_eq(p[1], y):
-        return None
-    return p[1] < y if a[0] < b[0] else p[1] > y
-
-
-def intersects_h(a, b, y):
-    """Return whether a line intersects with a horizontal.
-
-    Return True if any point on the line between points 'a' and 'b', including
-    the points themselves, lies at the given 'y' value.  Horizontal lines are
-    not considered to intersect any 'y' value.
-    """
-    if a[1] == b[1]:
-        return False
-    if a[1] > b[1]:
-        a, b = b, a
-    return not (float_gt(a[1], y) or float_lt(b[1], y))
-
-
-def intersects_v(a, b, x):
-    """Return whether a line intersects with a vertical.
-
-    Return True if any point on the line between points 'a' and 'b', including
-    the points themselves, lies at the given 'x' value.  Vertical lines are
-    not considered to intersect any 'x' value.
-    """
-    if a[0] == b[0]:
-        return False
-    if a[0] > b[0]:
-        a, b = b, a
-    return not (float_gt(a[0], x) or float_lt(b[0], x))
-
-
-def get_intercept_h(a, b, y):
-    """Return the x-value where a line intersects a horizontal.
-
-    Given a line that intersects points 'a' and 'b', and a horizontal with
-    y-value 'y', return the x-value of the point where the horizontal meets the
-    line.
-
-    Return None if the line between 'a' and 'b' is itself horizontal.
-    """
-    if a[1] == b[1]:
-        return None
-    dx = b[0] - a[0]
-    dy = b[1] - a[1]
-    grad = dx / dy
-    return a[0] + (y - a[1]) * grad
 
 
 def normalise_polygon(points):
@@ -351,7 +178,7 @@ def _find_next_convex_point(poly, i):
     return None
 
 
-def in_polygon(poly, point, exact=True):
+def point_in_polygon(poly, point, exact=True):
     """Return whether the given point lies inside a polygon.
 
     The polygon must be given as a sequence of points forming a clockwise
