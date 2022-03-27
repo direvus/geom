@@ -83,3 +83,61 @@ def float_lt(a, b):
     EPSILON value.
     """
     return float(a) < float(b) - EPSILON
+
+
+def get_bbox(*points):
+    """Return the bounding box for a sequence of points.
+
+    The return is a 4-tuple containing the minima for the coordinates in the
+    input, followed by the maxima, in the same axis order as the input.
+
+    For example, if the input points are coordinates in X, Y axis order, then
+    the return tuple will be:
+
+    (min_x, min_y, max_x, max_y)
+
+    Likewise, if the input points are geographic coordinates in lon, lat order,
+    then the return tuple will be:
+
+    (min_lon, min_lat, max_lon, max_lat), or
+    (west, south, east, north)
+    """
+    coords = flatten_coords(*points)
+    min_x = None
+    min_y = None
+    max_x = None
+    max_y = None
+    for i in range(0, len(coords), 2):
+        x, y = coords[i:i+2]
+        if min_x is None or x < min_x:
+            min_x = x
+        if min_y is None or y < min_y:
+            min_y = y
+        if max_x is None or x > max_x:
+            max_x = x
+        if max_y is None or y > max_y:
+            max_y = y
+    return (min_x, min_y, max_x, max_y)
+
+
+def in_bbox(box, point, exact=True):
+    """Return whether a given point lies inside of a bounding box.
+
+    Given a bounding box in (min_x, min_y, max_x, max_y) form, return whether
+    the given point lies inside that bounding box.  If the 'exact' argument is
+    True, then points lying exactly on the boundary will yield True.
+    Otherwise, they will yield False.
+    """
+    if (float_lt(point[0], box[0]) or
+            float_gt(point[0], box[2]) or
+            float_lt(point[1], box[1]) or
+            float_gt(point[1], box[3])):
+        return False
+
+    if (float_eq(point[0], box[0]) or
+            float_eq(point[0], box[2]) or
+            float_eq(point[1], box[1]) or
+            float_eq(point[1], box[3])):
+        return exact
+
+    return True

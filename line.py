@@ -2,7 +2,7 @@
 # coding: utf-8
 import math
 
-from util import float_eq, float_gt, float_lt
+from util import float_eq, float_gt, float_lt, in_bbox
 from point import Point
 
 
@@ -59,6 +59,16 @@ class Line():
         Y direction.
         """
         return math.atan2(self.dy, self.dx)
+
+    @property
+    def bbox(self):
+        """Return this line's bounding box."""
+        return (
+                min(self.a.x, self.b.x),
+                min(self.a.y, self.b.y),
+                max(self.a.x, self.b.x),
+                max(self.a.y, self.b.y),
+                )
 
     def get_x_intercept(self, x):
         """Return the y-value where the line intersects a vertical.
@@ -119,7 +129,7 @@ class Line():
         return not (float_gt(y1, y) or float_lt(y2, y))
 
     def get_intersection(self, other):
-        """Return the point of intersection between two lines.
+        """Return the point of intersection between two infinite lines.
 
         If the lines are not parallel, return the (x, y) point where the lines
         intersect.
@@ -150,10 +160,31 @@ class Line():
             ydist = other.a[1] - self.a[1]
             return (self.a[0] + ydist * 1 / self.gradient, other.a[1])
 
+        if self.angle in {other.angle, (-other).angle}:
+            return None
+        if self.a == other.a or self.a == other.b:
+            return self.a
+        if self.b == other.a or self.b == other.b:
+            return self.b
+
         convergence = self.gradient - other.gradient
+        if convergence == 0:
+            raise RuntimeError(f"What the hell?  Convergence zero between {self} and {other}")
         ydist = other.get_x_intercept(self.a[0]) - self.a[1]
         x = self.a[0] + ydist / convergence
         return (x, self.get_x_intercept(x))
+
+    def intersects(self, other):
+        """Return whether two bounded lines intersect each other.
+
+        This is true if the two lines are not parallel and, when considered as
+        infinite lines, their point of intersection lies within the bounding
+        box of both lines.
+        """
+        p = self.get_intersection(other)
+        if p is None:
+            return False
+        return in_bbox(self.bbox, p) and in_bbox(other.bbox, p)
 
     def __neg__(self):
         """Return the negation of the line.
@@ -162,6 +193,9 @@ class Line():
         opposite direction (a and b are reversed).
         """
         return Line(self.b, self.a)
+
+    def __str__(self):
+        return f"{self.a} → {self.b}"
 
 
 def in_bound(a, b, p):

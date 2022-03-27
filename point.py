@@ -40,6 +40,9 @@ class Point():
             return self.y
         raise KeyError()
 
+    def __str__(self):
+        return f"({self.x},{self.y})"
+
 
 def point_eq(a, b):
     """Return whether two points (coordinate pairs) are "nearly" equal.

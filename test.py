@@ -132,6 +132,10 @@ class TestPolygon(unittest.TestCase):
         with self.assertRaises(ValueError):
             poly = polygon.Polygon([(1, 2), (3, 6), (2, 4)])
 
+        # self-intersection
+        with self.assertRaises(ValueError):
+            poly = polygon.Polygon([(1, 2), (3, 6), (5, 4), (-1, 4), (1, 2)])
+
         # simple triangle
         poly = polygon.Polygon([(1, 2), (3, 5), (4, 1), (1, 2)])
         self.assertEqual(len(poly), 4)
@@ -233,9 +237,6 @@ class TestPolygon(unittest.TestCase):
         self.assertEqual(polygon.shift_polygon(poly, 4), shift1)
 
     def test_point_in_polygon(self):
-        with self.assertRaises(ValueError):
-            polygon.point_in_polygon([(1, 2)], (3, 4))
-
         # simple triangle
         poly = [(1, 2), (3, 5), (4, 1), (1, 2)]
         self.assertTrue(polygon.point_in_polygon(poly, (3, 2)))
