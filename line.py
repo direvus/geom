@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 # coding: utf-8
+import math
+
 from util import float_eq, float_gt, float_lt
 from point import Point
 
@@ -14,11 +16,21 @@ class Line():
 
     @property
     def is_horizontal(self):
-        return self.a[1] == self.b[1]
+        return self.a.y == self.b.y
 
     @property
     def is_vertical(self):
-        return self.a[0] == self.b[0]
+        return self.a.x == self.b.x
+
+    @property
+    def dy(self):
+        """Return the difference in y-value between the end points."""
+        return self.b.y - self.a.y
+
+    @property
+    def dx(self):
+        """Return the difference in x-value between the end points."""
+        return self.b.x - self.a.x
 
     @property
     def gradient(self):
@@ -34,7 +46,19 @@ class Line():
             return None
         if self.is_horizontal:
             return 0
-        return (self.b[1] - self.a[1]) / (self.b[0] - self.a[0])
+        return self.dy / self.dx
+
+    @property
+    def angle(self):
+        """Return the direction of the line.
+
+        The result is the size of angle between the line and the positive X
+        axis, as a number of radians between π and -π.  A positive angle means
+        the line heads "above" the X axis, in the positive Y direction.  A
+        negative angle means the line heads "below" the X axis, in the negative
+        Y direction.
+        """
+        return math.atan2(self.dy, self.dx)
 
     def get_x_intercept(self, x):
         """Return the y-value where the line intersects a vertical.

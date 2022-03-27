@@ -35,10 +35,16 @@ class Polygon():
         if self.points[0] != self.points[-1]:
             self.points.append(self.points[0])
 
-        # TODO: disallow backtracking along the same line
-
         if len(self.points) < 4:
             raise ValueError("Not enough valid points for a closed polygon.")
+
+        # Disallow backtracking along the same line
+        lines = self.lines
+        for i in range(len(lines) - 1):
+            if (lines[i].angle == (-lines[i+1]).angle):
+                raise ValueError(
+                        f"Line {lines[i+1]} backtracks "
+                        "along the previous line.")
 
     def __len__(self):
         return len(self.points)

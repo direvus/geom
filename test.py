@@ -16,6 +16,10 @@ class TestLine(unittest.TestCase):
         self.assertAlmostEqual(a[0], b[0])
         self.assertAlmostEqual(a[1], b[1])
 
+    def test_constructor(self):
+        with self.assertRaises(ValueError):
+            line.Line((3, 5), (3.0, 5.0))
+
     def test_in_bound(self):
         with self.assertRaises(ValueError):
             line.in_bound((2, 1), (2, 1), (1, 1))
@@ -119,6 +123,19 @@ class TestLine(unittest.TestCase):
 
 
 class TestPolygon(unittest.TestCase):
+    def test_constructor(self):
+        # not enough distinct points
+        with self.assertRaises(ValueError):
+            poly = polygon.Polygon([(1, 2), (1, 2), (3, 5), (1, 2)])
+
+        # backtracking
+        with self.assertRaises(ValueError):
+            poly = polygon.Polygon([(1, 2), (3, 6), (2, 4)])
+
+        # simple triangle
+        poly = polygon.Polygon([(1, 2), (3, 5), (4, 1), (1, 2)])
+        self.assertEqual(len(poly), 4)
+
     def test_is_convex(self):
         # simple triangle
         poly = [(1, 2), (3, 5), (4, 1), (1, 2)]
