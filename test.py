@@ -156,7 +156,6 @@ class TestBoundingBox(unittest.TestCase):
 
         # A shape contains itself
         self.assertTrue(f(bbox))
-        self.assertTrue(f(bbox.get_polygon()))
 
         poly = geom.Polygon([(-1, -1), (0, 3), (3, 0), (-1, -1)])
         self.assertTrue(f(poly))

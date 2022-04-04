@@ -15,6 +15,16 @@ Extended 9-Intersection Model](https://en.wikipedia.org/wiki/DE-9IM) (DE-9IM):
 - contains
 - overlaps
 
+# Data Model
+
+- *Geometry* (abstract)
+  - Point
+  - Line
+  - *Shape* (abstract)
+    - BoundingBox
+    - Polygon
+    - Circle
+
 # Dependencies
 
 Python 3, standard library only.

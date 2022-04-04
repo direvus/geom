@@ -37,6 +37,9 @@ class Geometry():
         """Return a geometry of the combined interior of both inputs."""
         raise NotImplementedError()
 
+    def intersects(self, other):
+        return self.intersection(other) is not None
+
     def __and__(self, other):
         return self.intersection(other)
 
@@ -99,6 +102,9 @@ class Point(Geometry):
 
     def __str__(self):
         return f"({self.x},{self.y})"
+
+    def __hash__(self):
+        return hash((self.x, self.y))
 
 
 class Line(Geometry):
@@ -323,7 +329,7 @@ class Line(Geometry):
         if isinstance(other, Line):
             return self.intersects_line(other)
 
-        # TODO: bbox, polygon
+        return other.intersects(self)
 
     def intersection(self, other):
         """Return the intersection of this line with some geometry.
@@ -355,9 +361,18 @@ class Line(Geometry):
     def __str__(self):
         return f"{self.a} → {self.b}"
 
+    def __hash__(self):
+        return hash((self.a, self.b))
+
 
 class Shape(Geometry):
-    """A Shape is any geometry that has an interior."""
+    """A Shape is any geometry that has an interior.
+
+    More precisely, a Shape divides the coordinate space into three categories:
+    - interior,
+    - exterior and
+    - boundary.
+    """
     @property
     def bbox(self):
         raise NotImplementedError()
@@ -388,16 +403,6 @@ class BoundingBox(Shape):
     def bbox(self):
         return self
 
-    def get_polygon(self):
-        """Return this bounding box as a Polygon."""
-        return Polygon([
-                (self.min_x, self.min_y),
-                (self.min_x, self.max_y),
-                (self.max_x, self.max_y),
-                (self.max_x, self.min_y),
-                (self.min_x, self.min_y),
-                ])
-
     def disjoint(self, other):
         """Return whether the two geometries are spatially disjoint.
 
@@ -417,6 +422,19 @@ class BoundingBox(Shape):
                     float_gt(other.min_x, self.max_x) or
                     float_lt(other.max_y, self.min_y) or
                     float_gt(other.min_y, self.max_y))
+
+        # TODO: bbox/line, bbox/poly
+
+    def intersects(self, other):
+        """Return whether this box intersects some other geometry."""
+        if isinstance(other, (Point, BoundingBox)):
+            return not self.disjoint(other)
+
+        if isinstance(other, Shape):
+            if self.disjoint(other.bbox):
+                return False
+
+        # TODO: bbox/line, bbox/poly
 
     def contains(self, other):
         if isinstance(other, Point):
