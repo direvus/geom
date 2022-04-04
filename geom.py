@@ -286,11 +286,7 @@ class Line(Geometry):
             return True
 
         bbox = self.bbox
-        if (
-                float_lt(point.x, bbox.min_x) or
-                float_lt(point.y, bbox.min_y) or
-                float_gt(point.x, bbox.max_x) or
-                float_gt(point.y, bbox.max_y)):
+        if bbox.disjoint(point):
             return False
 
         if self.is_vertical:
