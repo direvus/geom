@@ -249,6 +249,43 @@ class Line(Geometry):
         """Return whether this line is parallel with another line."""
         return self.angle in {other.angle, (-other).angle}
 
+    def in_bound(self, point):
+        """Return whether the given point lies within this line's boundary.
+
+        Considering this line as a Euclidean line that extends infinitely in
+        both directions, return True if the point 'p' lies on the right-hand
+        side of that line, False if it lies of the left-hand side, or None if
+        it lies exactly on the line.
+
+        In this context, "right-hand" means from the point of view of an
+        observer at point A, looking towards point B.
+        """
+        a = self.a
+        b = self.b
+        p = Point(point)
+        # Shortcut case: point is equal to one of the line endpoints
+        if a == p or b == p:
+            return None
+
+        # Shortcut case: line is horizontal or vertical
+        if self.is_horizontal:
+            if float_eq(p.y, a.y):
+                return None
+            return p.y < a.y if a.x < b.x else p.y > a.y
+
+        if self.is_vertical:
+            if float_eq(p.x, a.x):
+                return None
+            return p.x > a.x if a.y < b.y else p.x < a.x
+
+        # Find the point on the line that has the same x-value as P, and then
+        # see whether P lies above or below that point.
+        y = self.get_x_intercept(p.x)
+
+        if float_eq(p.y, y):
+            return None
+        return p.y < y if a.x < b.x else p.y > y
+
     def extrapolate_intersection(self, other):
         """Return the point of intersection between two infinite lines.
 
@@ -812,6 +849,25 @@ class Polygon(Shape):
                     return False
             return True
 
+        lines = [x for x in self.lines if x.intersects(other)]
+        length = len(lines)
+        if length == 0:
+            # No line intersections, must be fully internal
+            return True
+        if len(lines) == 1 and isinstance(lines[0] & other, Line):
+            # Line intersection on exactly one boundary
+            return False
+
+        # If we've arrived here, the line is contained if and only if neither
+        # endpoint of the line is out of bounds of any of the polygon
+        # boundaries that it intersects.
+        for line in lines:
+            if (
+                    line.in_bound(other.a) is False or
+                    line.in_bound(other.b) is False):
+                return False
+        return True
+
     def contains(self, other):
         """Return whether this polygon contains some other geometry.
 
@@ -886,40 +942,7 @@ def point_eq(a, b):
 
 
 def in_bound(a, b, p):
-    """Return whether a given point lies within a boundary line.
-
-    Given a line that runs from point 'a' to point 'b', and extends infinitely
-    in both directions, return True if the point 'p' lies on the right-hand
-    side of that line, and False if it lies of the left-hand side.  If the
-    point lies exactly on the line, return None.
-    """
-    line = Line(a, b)
-    a = line.a
-    b = line.b
-    p = Point(p)
-
-    # Shortcut case: P is equal to A or B
-    if a == p or b == p:
-        return None
-
-    # Shortcut case: horizontal or vertical lines
-    if line.is_horizontal:
-        if float_eq(p.y, a.y):
-            return None
-        return p.y < a.y if a.x < b.x else p.y > a.y
-
-    if line.is_vertical:
-        if float_eq(p.x, a.x):
-            return None
-        return p.x > a.x if a.y < b.y else p.x < a.x
-
-    # Find the point on the line that has the same x-value as P, and then see
-    # whether P lies above or below that point.
-    y = line.get_x_intercept(p.x)
-
-    if float_eq(p.y, y):
-        return None
-    return p.y < y if a.x < b.x else p.y > y
+    return Line(a, b).in_bound(p)
 
 
 def get_intercept_h(a, b, y):

@@ -481,6 +481,36 @@ class TestPolygon(unittest.TestCase):
         self.assertFalse(f(L((3.5, 3), (3.75, 2))))
         self.assertFalse(f(L((3.5, 3), (4.5, -1))))
 
+        # horseshoe
+        poly = geom.Polygon([
+                (1, 1),
+                (1, 6),
+                (2, 5),
+                (2, 2),
+                (4, 2),
+                (3, 4),
+                (5, 4),
+                (4, 0),
+                (1, 1),
+                ])
+        f = poly.contains_line
+
+        # Fully external
+        self.assertFalse(f(L((10, 0), (10, 2))))
+        self.assertFalse(f(L((3, 0), (0, 0))))
+        # Partly external
+        self.assertFalse(f(L((4, 3), (6, 3))))
+        # Fully internal
+        self.assertTrue(f(L((3, 1), (2, 1))))
+        # Spanning
+        self.assertTrue(f(L((1, 4), (2, 4))))
+        # From boundary to internal
+        self.assertTrue(f(L((1, 2), (3, 1))))
+        # On boundary
+        self.assertFalse(f(L((1, 2), (1, 5))))
+        self.assertFalse(f(L((4, 4), (6, 4))))
+
+
     def test_intersects_point(self):
         # horseshoe
         poly = geom.Polygon([
