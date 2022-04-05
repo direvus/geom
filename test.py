@@ -1,6 +1,7 @@
 import unittest
 
 import geom
+from geom import P, L, B, Pg
 
 
 class TestPoint(unittest.TestCase):
@@ -218,7 +219,7 @@ class TestBoundingBox(unittest.TestCase):
         self.assertTrue(f(geom.Line((0, 0), (1, 1))))
         self.assertFalse(f(geom.Line((0, 0), (7, 7))))
         self.assertFalse(f(geom.Line((-3, 0), (-4, 1))))
-        # geom.Lines on the boundary are not contained
+        # Lines on the boundary are not contained
         self.assertFalse(f(geom.Line((3.1000000001, 0), (3.1000000001, -1))))
 
         self.assertTrue(f(geom.BoundingBox(0, 0, 1, 1)))
@@ -232,6 +233,39 @@ class TestBoundingBox(unittest.TestCase):
         self.assertTrue(f(poly))
         poly = geom.Polygon([(6, 6), (7, 10), (10, 7), (6, 6)])
         self.assertFalse(f(poly))
+
+    def test_intersects(self):
+        bbox = geom.BoundingBox(0, 0, 10, 5)
+        f = bbox.intersects
+
+        # Points
+        self.assertFalse(f(P(11, 0)))
+        self.assertFalse(f(P(-1, 0)))
+        self.assertFalse(f(P(1, -1)))
+        self.assertFalse(f(P(1, 6)))
+
+        self.assertTrue(f(P(3, 3)))
+        self.assertTrue(f(P(0, 0)))
+        self.assertTrue(f(P(0, 1)))
+        self.assertTrue(f(P(0, 5)))
+        self.assertTrue(f(P(5, 5)))
+        self.assertTrue(f(P(10, 5)))
+        self.assertTrue(f(P(10, 2)))
+        self.assertTrue(f(P(10, 0)))
+        self.assertTrue(f(P(9, 0)))
+
+        # Lines:
+        # - External
+        self.assertFalse(f(L((11, 0), (11, 5))))
+        # - Internal
+        self.assertTrue(f(L((1, 1), (4, 3))))
+        # - Overlapping
+        self.assertTrue(f(L((-7, 4), (12, 4))))
+        # - Boundary
+        self.assertTrue(f(L((0, 0), (0, 5))))
+        self.assertTrue(f(L((10, 4), (10, 6))))
+        # - Corner
+        self.assertTrue(f(L((9, -1), (11, 1))))
 
 
 class TestPolygon(unittest.TestCase):

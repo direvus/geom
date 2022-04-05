@@ -495,6 +495,39 @@ class BoundingBox(Shape):
     def bbox(self):
         return self
 
+    @property
+    def points(self):
+        """Return the corners of this box's boundary as an iterable of Points.
+
+        The Points are returned starting with the lower-left corner and
+        proceeding clockwise.
+        """
+        return [
+                Point(self.min_x, self.min_y),
+                Point(self.min_x, self.max_y),
+                Point(self.max_x, self.max_y),
+                Point(self.max_x, self.min_y),
+                ]
+
+    @property
+    def boundary(self):
+        """Return this box's boundary, as an iterable of Lines.
+
+        The Lines are returned starting from the lower-left corner and
+        proceeding clockwise.
+
+        Note that a BoundingBox boundary does not necessarily consitute a valid
+        Polygon.  A Polygon must enclose some amount of interior space, whereas
+        a BoundingBox need not.
+        """
+        a, b, c, d = self.points
+        return [
+                Line(a, b),
+                Line(b, c),
+                Line(c, d),
+                Line(d, a),
+                ]
+
     def disjoint(self, other):
         """Return whether the two geometries are spatially disjoint.
 
@@ -526,7 +559,15 @@ class BoundingBox(Shape):
             if self.disjoint(other.bbox):
                 return False
 
-        # TODO: bbox/line, bbox/poly
+        if isinstance(other, Line):
+            if self.contains(other):
+                return True
+            for line in self.boundary:
+                if line.intersects(other):
+                    return True
+            return False
+
+        # TODO: bbox/poly
 
     def contains(self, other):
         if isinstance(other, Point):
@@ -735,6 +776,7 @@ class Polygon(Shape):
 # Class aliases
 P = Point
 L = Line
+B = BoundingBox
 Pg = Polygon
 
 
