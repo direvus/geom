@@ -898,7 +898,21 @@ class Polygon(Shape):
         return True
 
     def contains_polygon(self, other):
-        pass
+        """Return whether this polygon contains another polygon.
+
+        See comments at Shape.contains for the particulars.
+        """
+        for p in other.points:
+            if self.disjoint(p):
+                return False
+
+        if self.is_convex:
+            return True
+
+        for line in other.lines:
+            if not self.covers_line(line):
+                return False
+        return True
 
     def contains(self, other):
         """Return whether this polygon contains some other geometry.
@@ -987,7 +1001,8 @@ class Polygon(Shape):
             return self.contains_point(other)
 
         # TODO: bbox/line/poly in poly
-        raise ValueError(f"Unsupported type for polygon intersects: {type(other)}.")
+        raise ValueError(
+                f"Unsupported type for polygon intersects: {type(other)}.")
 
     def move(self, x=0, y=0):
         """Return a new Polygon spatially shifted relative to this one."""

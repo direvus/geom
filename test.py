@@ -229,9 +229,9 @@ class TestBoundingBox(unittest.TestCase):
         # A shape contains itself
         self.assertTrue(f(bbox))
 
-        poly = geom.Polygon([(-1, -1), (0, 3), (3, 0), (-1, -1)])
+        poly = Pg([(-1, -1), (0, 3), (3, 0), (-1, -1)])
         self.assertTrue(f(poly))
-        poly = geom.Polygon([(6, 6), (7, 10), (10, 7), (6, 6)])
+        poly = Pg([(6, 6), (7, 10), (10, 7), (6, 6)])
         self.assertFalse(f(poly))
 
     def test_intersects(self):
@@ -292,18 +292,18 @@ class TestPolygon(unittest.TestCase):
     def test_constructor(self):
         # not enough distinct points
         with self.assertRaises(ValueError):
-            poly = geom.Polygon([(1, 2), (1, 2), (3, 5), (1, 2)])
+            poly = Pg([(1, 2), (1, 2), (3, 5), (1, 2)])
 
         # backtracking
         with self.assertRaises(ValueError):
-            poly = geom.Polygon([(1, 2), (3, 6), (2, 4)])
+            poly = Pg([(1, 2), (3, 6), (2, 4)])
 
         # self-intersection
         with self.assertRaises(ValueError):
-            poly = geom.Polygon([(1, 2), (3, 6), (5, 4), (-1, 4), (1, 2)])
+            poly = Pg([(1, 2), (3, 6), (5, 4), (-1, 4), (1, 2)])
 
         # simple triangle
-        poly = geom.Polygon([(1, 2), (3, 5), (4, 1), (1, 2)])
+        poly = Pg([(1, 2), (3, 5), (4, 1), (1, 2)])
         self.assertEqual(len(poly), 4)
 
     def test_is_convex(self):
@@ -404,7 +404,7 @@ class TestPolygon(unittest.TestCase):
 
     def test_contains_point(self):
         # simple triangle
-        poly = geom.Polygon([(1, 2), (3, 5), (4, 1), (1, 2)])
+        poly = Pg([(1, 2), (3, 5), (4, 1), (1, 2)])
         f = poly.contains_point
         expect = (
                 (False, False, False, False, False),
@@ -419,7 +419,7 @@ class TestPolygon(unittest.TestCase):
                 self.assertIs(f(P(x, y)), expect[y][x], f"({x}, {y})")
 
         # octagon centred on (0, 0)
-        poly = geom.Polygon([
+        poly = Pg([
                 (1, 2),
                 (2, 1),
                 (2, -1),
@@ -438,7 +438,7 @@ class TestPolygon(unittest.TestCase):
         self.assertFalse(f(P(2, 2)))
 
         # horseshoe
-        poly = geom.Polygon([
+        poly = Pg([
                 (1, 1),
                 (1, 6),
                 (2, 5),
@@ -465,7 +465,7 @@ class TestPolygon(unittest.TestCase):
 
     def test_contains_line(self):
         # simple triangle
-        poly = geom.Polygon([(1, 2), (3, 5), (4, 1), (1, 2)])
+        poly = Pg([(1, 2), (3, 5), (4, 1), (1, 2)])
         f = poly.contains_line
 
         # Fully external
@@ -482,7 +482,7 @@ class TestPolygon(unittest.TestCase):
         self.assertFalse(f(L((3.5, 3), (4.5, -1))))
 
         # horseshoe
-        poly = geom.Polygon([
+        poly = Pg([
                 (1, 1),
                 (1, 6),
                 (2, 5),
@@ -512,7 +512,7 @@ class TestPolygon(unittest.TestCase):
 
     def test_contains_bbox(self):
         # simple triangle
-        poly = geom.Polygon([(1, 2), (3, 5), (4, 1), (1, 2)])
+        poly = Pg([(1, 2), (3, 5), (4, 1), (1, 2)])
         f = poly.contains_bbox
         # Fully internal
         self.assertTrue(f(B(2, 2, 3, 3)))
@@ -524,7 +524,7 @@ class TestPolygon(unittest.TestCase):
         self.assertTrue(f(B(2, 2, 3.5, 3)))
 
         # octagon centred on (0, 0)
-        poly = geom.Polygon([
+        poly = Pg([
                 (1, 2),
                 (2, 1),
                 (2, -1),
@@ -541,7 +541,7 @@ class TestPolygon(unittest.TestCase):
         self.assertFalse(f(B(-1, 2, 1, 4)))
 
         # horseshoe
-        poly = geom.Polygon([
+        poly = Pg([
                 (1, 1),
                 (1, 6),
                 (2, 5),
@@ -555,9 +555,75 @@ class TestPolygon(unittest.TestCase):
         f = poly.contains_bbox
         self.assertTrue(f(B(2, 1, 4, 1.5)))
 
+    def test_contains_poly(self):
+        # Simple triangle
+        a = Pg([(1, 2), (3, 5), (4, 1), (1, 2)])
+        f = a.contains_polygon
+        # Fully internal
+        b = Pg([(2, 2), (3, 4), (3, 2), (2, 2)])
+        self.assertTrue(f(b))
+        # Fully external
+        b = b.move(10, 0)
+        self.assertFalse(f(b))
+        # Partly external
+        b = b.move(-10, -2)
+        self.assertFalse(f(b))
+        # Point contact with boundary
+        self.assertTrue(f(Pg([(3.5, 3), (2, 2), (3, 4), (3.5, 3)])))
+
+        # Octagon centred on (0, 0)
+        a = Pg([
+                (1, 2),
+                (2, 1),
+                (2, -1),
+                (1, -2),
+                (-1, -2),
+                (-2, -1),
+                (-2, 1),
+                (-1, 2),
+                (1, 2),
+                ])
+        f = a.contains_polygon
+        # Sharing entire boundary lines
+        b = Pg([
+            (-2, -1),
+            (-2,  1),
+            ( 0,  2),
+            ( 2,  1),
+            ( 2, -1),
+            ( 0, -2),
+            (-2, -1),
+            ])
+        self.assertTrue(f(b))
+
+        b = b.move(4, 0)
+        self.assertFalse(f(b))
+
+        # Horseshoe
+        a = Pg([
+                (1, 1),
+                (1, 6),
+                (2, 5),
+                (2, 2),
+                (4, 2),
+                (3, 4),
+                (5, 4),
+                (4, 0),
+                (1, 1),
+                ])
+        f = a.contains_polygon
+        b = Pg([
+            (1, 1),
+            (1, 3),
+            (4, 3),
+            (4, 1),
+            (1, 1),
+            ])
+        self.assertFalse(f(b))
+
     def test_intersects_point(self):
         # horseshoe
-        poly = geom.Polygon([
+        poly = Pg([
                 (1, 1),
                 (1, 6),
                 (2, 5),
