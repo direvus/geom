@@ -629,9 +629,9 @@ class Polygon(Shape):
     exterior linear ring, with the interior of the polygon on the right-hand
     side from a perspective travelling along the line.
 
-    When a polygon is initialised, we remove any consecutive duplicate points,
-    and close the polygon if it is not already closed (i.e. ensure that the
-    last point in the polygon is the same as the first point).
+    When a polygon is initialised, we remove any consecutive duplicate or
+    redundant points, and close the polygon if it is not already closed (i.e.
+    ensure that the last point in the polygon is the same as the first point).
     """
     def __init__(self, value):
         if isinstance(value, Polygon):
@@ -640,11 +640,24 @@ class Polygon(Shape):
 
         points = [Point(x) for x in value]
 
-        # Filter out consecutive identical points
+        # Filter out consecutive identical points and redundant points.
         self.points = []
+        length = len(points)
         for i, p in enumerate(points):
-            if i == 0 or p != points[i-1]:
-                self.points.append(p)
+            if i > 0:
+                prev = points[i-1]
+                if p == prev:
+                    continue
+                if i < length - 1:
+                    # If the boundary doesn't change angle after this point,
+                    # then it makes no difference to the shape whether it is
+                    # included or not.  So don't.
+                    nxt = points[i+1]
+                    a = Line(prev, p)
+                    b = Line(p, nxt)
+                    if a.angle == b.angle:
+                        continue
+            self.points.append(p)
 
         # If the polygon isn't closed, close it now.
         if self.points[0] != self.points[-1]:
@@ -719,6 +732,18 @@ class Polygon(Shape):
         """Return an iterable of all the line segments in the polygon."""
         return [Line(self[i], self[i+1]) for i in range(len(self) - 1)]
 
+    @property
+    def is_convex(self):
+        """Return whether this polygon is convex.
+
+        The polygon is considered convex if no point lies on the left-hand side
+        of the line formed by the preceding two points.
+        """
+        for i in range(0, len(self) - 2):
+            if in_bound(self[i], self[i+1], self[i+2]) is False:
+                return False
+        return True
+
     def contains_point(self, value):
         """Return whether the given point is contained by this polygon.
 
@@ -770,6 +795,23 @@ class Polygon(Shape):
         lline = hlines[left]
         return rline.a.y > rline.b.y and lline.a.y < lline.b.y
 
+    def contains_line(self, other):
+        """Return whether this polygon contains a Line.
+
+        See comments at Shape.contains for the particulars.
+        """
+        if self.disjoint(other.a) or self.disjoint(other.b):
+            return False
+
+        # Shortcut: for convex polygons, since we have already ruled out
+        # endpoints outside the polygon, the line must either lie on a
+        # boundary, or be contained by the polygon.
+        if self.is_convex:
+            for line in self.lines:
+                if isinstance(line & other, Line):
+                    return False
+            return True
+
     def contains(self, other):
         """Return whether this polygon contains some other geometry.
 
@@ -778,8 +820,24 @@ class Polygon(Shape):
         if isinstance(other, Point):
             return self.contains_point(other)
 
-        # TODO: line in poly, poly in poly
+        # Shortcut: if the geometry is outside this polygon's bounding box,
+        # then it definitely isn't contained by the polygon.
+        if self.bbox.disjoint(other):
+            return False
+
+        if isinstance(other, Line):
+            return self.contains_line(other)
+
+        # TODO: poly in poly
         raise ValueError(f"Unsupported type for polygon contains: {type(other)}.")
+
+    def disjoint(self, other):
+        """Return whether this polygon is disjoint with some other geometry.
+
+        Two geometries are disjoint if they share no interior space or boundary
+        whatsoever, be it by overlapping, crossing, or touching.
+        """
+        return not self.intersects(other)
 
     def intersects(self, other):
         """Return whether this polygon intersects some other geometry.

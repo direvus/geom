@@ -463,6 +463,24 @@ class TestPolygon(unittest.TestCase):
             for x in range(len(expect[y])):
                 self.assertIs(f(P(x, y)), expect[y][x], f"({x}, {y})")
 
+    def test_contains_line(self):
+        # simple triangle
+        poly = geom.Polygon([(1, 2), (3, 5), (4, 1), (1, 2)])
+        f = poly.contains_line
+
+        # Fully external
+        self.assertFalse(f(L((10, 0), (10, 2))))
+        self.assertFalse(f(L((2, 0), (0, 3))))
+        # Partly external
+        self.assertFalse(f(L((3, 3), (5, 3))))
+        # Fully internal
+        self.assertTrue(f(L((3, 2), (2, 3))))
+        # Spanning
+        self.assertTrue(f(L((1, 2), (3.5, 3))))
+        # On boundary
+        self.assertFalse(f(L((3.5, 3), (3.75, 2))))
+        self.assertFalse(f(L((3.5, 3), (4.5, -1))))
+
     def test_intersects_point(self):
         # horseshoe
         poly = geom.Polygon([
