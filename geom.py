@@ -2,8 +2,7 @@
 # coding: utf-8
 import math
 
-from util import (
-        flatten_coords, float_eq, float_ne, float_gt, float_lt, in_bbox)
+from util import float_eq, float_ne, float_gt, float_lt, in_bbox
 
 
 class Geometry():
@@ -99,6 +98,10 @@ class Point(Geometry):
             return self if self == other else None
 
         return self if other.intersects(self) else None
+
+    def move(self, x=0, y=0):
+        """Return a new Point with position relative to this one."""
+        return Point(self.x + x, self.y + y)
 
     def __and__(self, other):
         return self.intersection(other)
@@ -429,6 +432,10 @@ class Line(Geometry):
         if isinstance(other, Line):
             return self.intersection_line(other)
 
+    def move(self, x=0, y=0):
+        """Return a new Line spatially shifted relative to this Line."""
+        return Line(self.a.move(x, y), self.b.move(x, y))
+
     def __eq__(self, other):
         """Return whether two lines are equal.
 
@@ -548,26 +555,33 @@ class BoundingBox(Shape):
                     float_lt(other.max_y, self.min_y) or
                     float_gt(other.min_y, self.max_y))
 
-        # TODO: bbox/line, bbox/poly
+        return not self.intersects(other)
 
     def intersects(self, other):
         """Return whether this box intersects some other geometry."""
         if isinstance(other, (Point, BoundingBox)):
             return not self.disjoint(other)
 
-        if isinstance(other, Shape):
-            if self.disjoint(other.bbox):
-                return False
+        if isinstance(other, Shape) and self.disjoint(other.bbox):
+            return False
+
+        if self.contains(other):
+            return True
 
         if isinstance(other, Line):
-            if self.contains(other):
-                return True
             for line in self.boundary:
                 if line.intersects(other):
                     return True
             return False
 
-        # TODO: bbox/poly
+        if isinstance(other, Polygon):
+            if self.contains(other):
+                return True
+            for box_line in self.boundary:
+                for poly_line in other.lines:
+                    if box_line.intersects(poly_line):
+                        return True
+            return False
 
     def contains(self, other):
         if isinstance(other, Point):
@@ -604,6 +618,9 @@ class BoundingBox(Shape):
                     return False
             return True
 
+    def __str__(self):
+        return f"{self.min_x},{self.min_y},{self.max_x},{self.max_y}"
+
 
 class Polygon(Shape):
     """A shape enclosed by straight line segments.
@@ -612,19 +629,16 @@ class Polygon(Shape):
     exterior linear ring, with the interior of the polygon on the right-hand
     side from a perspective travelling along the line.
 
-    When a polygon is initialised, we flatten out any structure around the
-    input points, remove any consecutive duplicate points, and close the
-    polygon if it is not already closed (i.e. ensure that the last point in the
-    polygon is the same as the first point).
+    When a polygon is initialised, we remove any consecutive duplicate points,
+    and close the polygon if it is not already closed (i.e. ensure that the
+    last point in the polygon is the same as the first point).
     """
     def __init__(self, value):
         if isinstance(value, Polygon):
             self.points = value.points
             return
 
-        # Normalise the coordinate structure to [(x0, y0), (x1, y1), ...]
-        coords = flatten_coords(value)
-        points = [Point(coords[i:i+2]) for i in range(0, len(coords), 2)]
+        points = [Point(x) for x in value]
 
         # Filter out consecutive identical points
         self.points = []
@@ -679,14 +693,12 @@ class Polygon(Shape):
                 return True
         return False
 
+    def __str__(self):
+        return " → ".join(map(str, self.points))
+
     @property
     def bbox(self):
-        """Return the bounding box for this polygon.
-
-        The return is a 4-tuple containing:
-
-        (min_x, min_y, max_x, max_y)
-        """
+        """Return the bounding box for this polygon."""
         min_x = None
         min_y = None
         max_x = None
@@ -700,44 +712,43 @@ class Polygon(Shape):
                 max_x = p.x
             if max_y is None or p.y > max_y:
                 max_y = p.y
-        return (min_x, min_y, max_x, max_y)
+        return BoundingBox(min_x, min_y, max_x, max_y)
 
     @property
     def lines(self):
         """Return an iterable of all the line segments in the polygon."""
         return [Line(self[i], self[i+1]) for i in range(len(self) - 1)]
 
-    def contains_point(self, value, exact=True):
-        """Return whether the given point lies inside this polygon.
+    def contains_point(self, value):
+        """Return whether the given point is contained by this polygon.
 
-        If 'exact' is True, then points lying exactly on the boundary of the
-        polygon will be treated as inside.  Otherwise they will be treated as
-        outside.
+        A polygon only contains points that lie within its interior.  Points on
+        the boundary of the polygon are not contained by it.
         """
         p = Point(value)
 
-        # Shortcut case: if the point is outside the polygon's bounding box,
-        # then it is definitely outside the polygon.
-        if not in_bbox(self.bbox, p, exact):
+        # Shortcut case: if the point is not contained by the polygon's
+        # bounding box, then it is definitely not contained by the polygon.
+        if not self.bbox.contains(p):
             return False
 
         # Shortcut case: if the point is equal to one of the polygon's
         # vertices, then it is on the boundary.
         if p in self:
-            return exact
+            return False
 
         lines = self.lines
-        # Edge case: check for the point lying exactly on a horizontal boundary
-        # of the polygon.
+        # Check for the point lying exactly on a boundary line.
         for line in lines:
-            if (line.intersects_x(p.x) and
-                    line.is_horizontal and
-                    float_eq(line.a.y, p.y)):
-                return exact
+            if line.intersects_point(p):
+                return False
 
         # Search for the nearest line segment on either side of the point that
         # lie on the same horizontal.
         hlines = [l for l in lines if l.intersects_y(p.y)]
+        if not hlines:
+            return False
+
         xdiffs = [l.get_y_intercept(p.y) - p.x for l in hlines]
 
         left = None
@@ -745,8 +756,6 @@ class Polygon(Shape):
         negx = None
         posx = None
         for i, x in enumerate(xdiffs):
-            if float_eq(x, 0):
-                return exact
             if x < 0 and (negx is None or x > negx):
                 left = i
                 negx = x
@@ -767,10 +776,35 @@ class Polygon(Shape):
         See comments at Shape.contains for the particulars.
         """
         if isinstance(other, Point):
-            return self.contains_point(other, False)
+            return self.contains_point(other)
 
         # TODO: line in poly, poly in poly
-        raise ValueError(f"Unknown type for polygon contains {type(other)}.")
+        raise ValueError(f"Unsupported type for polygon contains: {type(other)}.")
+
+    def intersects(self, other):
+        """Return whether this polygon intersects some other geometry.
+
+        See comments at Geometry.intersects for the particulars.
+        """
+        # Shortcut: if the geometry is outside this polygon's bounding box,
+        # then it definitely doesn't intersect with the polygon.
+        if self.bbox.disjoint(other):
+            return False
+
+        if isinstance(other, Point):
+            # True if the point is on the boundary or in the interior.
+            for line in self.lines:
+                if line.intersects_point(other):
+                    return True
+            return self.contains_point(other)
+
+        # TODO: bbox/line/poly in poly
+        raise ValueError(f"Unsupported type for polygon intersects: {type(other)}.")
+
+    def move(self, x=0, y=0):
+        """Return a new Polygon spatially shifted relative to this one."""
+        points = [p.move(x, y) for p in self.points]
+        return Polygon(points)
 
 
 # Class aliases

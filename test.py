@@ -267,6 +267,26 @@ class TestBoundingBox(unittest.TestCase):
         # - Corner
         self.assertTrue(f(L((9, -1), (11, 1))))
 
+        # Polygons:
+        poly = Pg([(0, 6), (0, 9), (4, 6), (0, 6)])
+
+        # - External
+        self.assertFalse(f(poly))
+        # - Internal
+        poly = poly.move(1, -5)
+        self.assertTrue(f(poly))
+        # - Overlapping
+        poly = poly.move(8, 0)
+        self.assertTrue(f(poly))
+        # - Shared boundary line
+        poly = poly.move(1, 0)
+        self.assertTrue(f(poly))
+        # - Shared boundary point
+        poly = poly.move(-14, 0)
+        self.assertTrue(f(poly))
+        poly = poly.move(0, 4)
+        self.assertTrue(f(poly))
+
 
 class TestPolygon(unittest.TestCase):
     def test_constructor(self):
@@ -382,14 +402,24 @@ class TestPolygon(unittest.TestCase):
         self.assertEqual(geom.shift_polygon(poly, 3), poly)
         self.assertEqual(geom.shift_polygon(poly, 4), shift1)
 
-    def test_point_in_polygon(self):
+    def test_contains_point(self):
         # simple triangle
-        poly = [(1, 2), (3, 5), (4, 1), (1, 2)]
-        self.assertTrue(geom.point_in_polygon(poly, (3, 2)))
-        self.assertFalse(geom.point_in_polygon(poly, (2, 4)))
+        poly = geom.Polygon([(1, 2), (3, 5), (4, 1), (1, 2)])
+        f = poly.contains_point
+        expect = (
+                (False, False, False, False, False),
+                (False, False, False, False, False),
+                (False, False,  True,  True, False),
+                (False, False,  True,  True, False),
+                (False, False, False,  True, False),
+                (False, False, False, False, False),
+                )
+        for y in range(len(expect)):
+            for x in range(len(expect[y])):
+                self.assertIs(f(P(x, y)), expect[y][x], f"({x}, {y})")
 
         # octagon centred on (0, 0)
-        poly = [
+        poly = geom.Polygon([
                 (1, 2),
                 (2, 1),
                 (2, -1),
@@ -399,15 +429,16 @@ class TestPolygon(unittest.TestCase):
                 (-2, 1),
                 (-1, 2),
                 (1, 2),
-                ]
-        self.assertTrue(geom.point_in_polygon(poly, (1, 1)))
-        self.assertTrue(geom.point_in_polygon(poly, (1, -1)))
-        self.assertTrue(geom.point_in_polygon(poly, (-1, -1)))
-        self.assertTrue(geom.point_in_polygon(poly, (-1, 1)))
-        self.assertFalse(geom.point_in_polygon(poly, (2, 2)))
+                ])
+        f = poly.contains_point
+        self.assertTrue(f(P(1, 1)))
+        self.assertTrue(f(P(1, -1)))
+        self.assertTrue(f(P(-1, -1)))
+        self.assertTrue(f(P(-1, 1)))
+        self.assertFalse(f(P(2, 2)))
 
         # horseshoe
-        poly = [
+        poly = geom.Polygon([
                 (1, 1),
                 (1, 6),
                 (2, 5),
@@ -417,7 +448,35 @@ class TestPolygon(unittest.TestCase):
                 (5, 4),
                 (4, 0),
                 (1, 1),
-                ]
+                ])
+        f = poly.contains_point
+        expect = (
+                (False, False, False, False, False, False, False),
+                (False, False,  True,  True,  True, False, False),
+                (False, False, False, False, False, False, False),
+                (False, False, False, False,  True, False, False),
+                (False, False, False, False, False, False, False),
+                (False, False, False, False, False, False, False),
+                (False, False, False, False, False, False, False),
+                )
+        for y in range(len(expect)):
+            for x in range(len(expect[y])):
+                self.assertIs(f(P(x, y)), expect[y][x], f"({x}, {y})")
+
+    def test_intersects_point(self):
+        # horseshoe
+        poly = geom.Polygon([
+                (1, 1),
+                (1, 6),
+                (2, 5),
+                (2, 2),
+                (4, 2),
+                (3, 4),
+                (5, 4),
+                (4, 0),
+                (1, 1),
+                ])
+        f = poly.intersects
         expect = (
                 (False, False, False, False,  True, False, False),
                 (False,  True,  True,  True,  True, False, False),
@@ -429,7 +488,4 @@ class TestPolygon(unittest.TestCase):
                 )
         for y in range(len(expect)):
             for x in range(len(expect[y])):
-                self.assertIs(
-                        geom.point_in_polygon(poly, (x, y)),
-                        expect[y][x],
-                        f"({x}, {y})")
+                self.assertIs(f(P(x, y)), expect[y][x], f"({x}, {y})")
