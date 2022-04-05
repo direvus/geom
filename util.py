@@ -67,6 +67,10 @@ def float_eq(a, b):
     return abs(float(a) - float(b)) < EPSILON
 
 
+def float_ne(a, b):
+    """Return whether two floating point values are not nearly equal."""
+    return not float_eq(a, b)
+
 def float_gt(a, b):
     """Return whether one floating point value is greater than another.
 

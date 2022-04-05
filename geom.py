@@ -2,7 +2,8 @@
 # coding: utf-8
 import math
 
-from util import flatten_coords, float_eq, float_gt, float_lt, in_bbox
+from util import (
+        flatten_coords, float_eq, float_ne, float_gt, float_lt, in_bbox)
 
 
 class Geometry():
@@ -77,6 +78,8 @@ class Point(Geometry):
         Two points are considered equal if the differences between their
         respective ordinates are both less than the EPSILON value.
         """
+        if isinstance(other, (Line, Shape)):
+            return False
         if not isinstance(other, Point):
             other = Point(other)
         return float_eq(self.x, other.x) and float_eq(self.y, other.y)
@@ -102,6 +105,9 @@ class Point(Geometry):
 
     def __str__(self):
         return f"({self.x},{self.y})"
+
+    def __repr__(self):
+        return f"Point({self.x},{self.y})"
 
     def __hash__(self):
         return hash((self.x, self.y))
@@ -236,6 +242,10 @@ class Line(Geometry):
             y1, y2 = y2, y1
         return not (float_gt(y1, y) or float_lt(y2, y))
 
+    def parallel(self, other):
+        """Return whether this line is parallel with another line."""
+        return self.angle in {other.angle, (-other).angle}
+
     def extrapolate_intersection(self, other):
         """Return the point of intersection between two infinite lines.
 
@@ -268,7 +278,7 @@ class Line(Geometry):
             ydist = other.a[1] - self.a[1]
             return Point(self.a[0] + ydist * 1 / self.gradient, other.a[1])
 
-        if self.angle in {other.angle, (-other).angle}:
+        if self.parallel(other):
             return None
         if self.a == other.a or self.a == other.b:
             return self.a
@@ -313,13 +323,21 @@ class Line(Geometry):
     def intersects_line(self, other):
         """Return whether two bounded lines intersect each other.
 
-        This is true if the two lines are not parallel and, when considered as
-        infinite lines, their point of intersection is not outside the bounding
-        box of either line.
+        This is true if the two lines share any points along their length,
+        including their endpoints.
         """
-        if self.bbox.disjoint(other.bbox):
+        bbox = self.bbox
+        if bbox.disjoint(other.bbox):
             return False
-        return self.intersection(other) is not None
+        if (
+                self.a in {other.a, other.b} or
+                self.b in {other.a, other.b} or
+                self.intersects_point(other.a) or
+                self.intersects_point(other.b)):
+            return True
+
+        p = self.extrapolate_intersection(other)
+        return not (p is None or bbox.disjoint(p) or other.bbox.disjoint(p))
 
     def intersects(self, other):
         """Return whether this line intersects some other geometry.
@@ -330,6 +348,70 @@ class Line(Geometry):
             return self.intersects_line(other)
 
         return other.intersects(self)
+
+    def intersection_line(self, other):
+        """Return the shared geometry between two bounded lines.
+
+        This will be None if the two lines are disjoint, a Point if the lines
+        cross each other, or a Line if the lines are parallel and have some
+        mutual space.
+        """
+        if self.bbox.disjoint(other.bbox):
+            return None
+        if self == other:
+            return self
+        if self.parallel(other):
+            if self.is_vertical:
+                x = self.a.x
+                if not float_eq(x, other.a.x):
+                    return None
+                # Lines share the same vertical; overlap?
+                y1 = max(min(self.a.y, self.b.y), min(other.a.y, other.b.y))
+                y2 = min(max(self.a.y, self.b.y), max(other.a.y, other.b.y))
+                if float_eq(y1, y2):
+                    return Point(x, y1)
+                if float_lt(y1, y2):
+                    a = x, y1
+                    b = x, y2
+                    if self.a.y > self.b.y:
+                        a, b = b, a
+                    return Line(a, b)
+                return None
+
+            if float_ne(self.get_x_intercept(0), other.get_x_intercept(0)):
+                return None
+
+            # Lines share the same Euclidean, do they overlap?
+            x1 = max(min(self.a.x, self.b.x), min(other.a.x, other.b.x))
+            x2 = min(max(self.a.x, self.b.x), max(other.a.x, other.b.x))
+            if float_eq(x1, x2):
+                return Point(x1, self.get_x_intercept(x1))
+            if float_lt(x1, x2):
+                a = x1, self.get_x_intercept(x1)
+                b = x2, self.get_x_intercept(x2)
+                if self.a.x > self.b.x:
+                    a, b = b, a
+                return Line(a, b)
+            return None
+
+        if self.a in {other.a, other.b}:
+            return self.a
+        if self.b in {other.a, other.b}:
+            return self.b
+
+        if self.intersects_point(other.a):
+            return other.a
+        if self.intersects_point(other.b):
+            return other.b
+        if other.intersects_point(self.a):
+            return self.a
+        if other.intersects_point(self.b):
+            return self.b
+
+        p = self.extrapolate_intersection(other)
+        if p is None or self.bbox.disjoint(p) or other.bbox.disjoint(p):
+            return None
+        return p
 
     def intersection(self, other):
         """Return the intersection of this line with some geometry.
@@ -345,10 +427,17 @@ class Line(Geometry):
             return other if self.intersects_point(other) else None
 
         if isinstance(other, Line):
-            p = self.extrapolate_intersection(other)
-            if p is None or bbox.disjoint(p) or other.bbox.disjoint(p):
-                return None
-            return p
+            return self.intersection_line(other)
+
+    def __eq__(self, other):
+        """Return whether two lines are equal.
+
+        Two lines are considered equal if their endpoints are equal.  They do
+        not need to have the same direction.
+        """
+        if not isinstance(other, Line):
+            return False
+        return (self.a, self.b) in {(other.a, other.b), (other.b, other.a)}
 
     def __neg__(self):
         """Return the negation of the line.
@@ -360,6 +449,9 @@ class Line(Geometry):
 
     def __str__(self):
         return f"{self.a} → {self.b}"
+
+    def __repr__(self):
+        return f"Line({self})"
 
     def __hash__(self):
         return hash((self.a, self.b))
@@ -638,6 +730,12 @@ class Polygon(Shape):
 
         # TODO: line in poly, poly in poly
         raise ValueError(f"Unknown type for polygon contains {type(other)}.")
+
+
+# Class aliases
+P = Point
+L = Line
+Pg = Polygon
 
 
 def point_eq(a, b):

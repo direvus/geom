@@ -135,6 +135,77 @@ class TestLine(unittest.TestCase):
         self.assertTrue(line.intersects_point(geom.Point(1, 1)))
         self.assertFalse(line.intersects_point(geom.Point(3, 3)))
 
+    def test_intersects_line(self):
+        # Vertical
+        a = geom.Line((3, 3), (3, 5))
+        self.assertFalse(a.intersects_line(geom.Line((4, 3), (4, 5))))
+        self.assertFalse(a.intersects_line(geom.Line((0, 2), (4, 2))))
+        self.assertTrue(a.intersects_line(geom.Line((3, 3), (4, 4))))
+        self.assertTrue(a.intersects_line(geom.Line((0, 1), (5, 6))))
+        self.assertTrue(a.intersects_line(geom.Line((3, 4), (3, 6))))
+
+        # Horizontal
+        a = geom.Line((3, 3), (-1, 3))
+        self.assertFalse(a.intersects_line(geom.Line((-1, 2), (5, 2))))
+        self.assertFalse(a.intersects_line(geom.Line((0, 2), (0, 0))))
+        self.assertTrue(a.intersects_line(geom.Line((3, 3), (4, 4))))
+        self.assertTrue(a.intersects_line(geom.Line((0, 0), (1, 5))))
+        self.assertTrue(a.intersects_line(geom.Line((0, 3), (1, 3))))
+
+        # Other
+        a = geom.Line((0, 3), (4, 0))
+        self.assertFalse(a.intersects_line(geom.Line((0, 0), (4, -3))))
+        self.assertFalse(a.intersects_line(geom.Line((-1, 0), (0, 5))))
+        self.assertTrue(a.intersects_line(geom.Line((0, 0), (5, 5))))
+        self.assertTrue(a.intersects_line(geom.Line((4, 0), (-2, 1))))
+        self.assertTrue(a.intersects_line(geom.Line((2, 1.5), (-2, 4.5))))
+
+    def test_intersection_line(self):
+        # Vertical
+        a = geom.Line((3, 3), (3, 5))
+        self.assertIsNone(a.intersection_line(geom.Line((4, 3), (4, 5))))
+        self.assertIsNone(a.intersection_line(geom.Line((0, 2), (4, 2))))
+        self.assertEqual(
+                a.intersection_line(geom.Line((3, 3), (4, 4))),
+                geom.Point(3, 3))
+        self.assertEqual(
+                a.intersection_line(geom.Line((0, 1), (5, 6))),
+                geom.Point(3, 4))
+        self.assertEqual(
+                a.intersection_line(geom.Line((3, 4), (3, 6))),
+                geom.Line((3, 4), (3, 5)))
+
+        # Horizontal
+        a = geom.Line((3, 3), (-1, 3))
+        self.assertIsNone(a.intersection_line(geom.Line((-1, 2), (5, 2))))
+        self.assertIsNone(a.intersection_line(geom.Line((0, 2), (0, 0))))
+        self.assertEqual(
+                a.intersection_line(geom.Line((3, 3), (4, 4))),
+                geom.Point(3, 3))
+        self.assertEqual(
+                a.intersection_line(geom.Line((0, 0), (1, 5))),
+                geom.Point(3/5, 3))
+        self.assertEqual(
+                a.intersection_line(geom.Line((0, 3), (1, 3))),
+                geom.Line((1, 3), (0, 3)))
+
+        # Other
+        a = geom.Line((0, 3), (4, 0))
+        self.assertIsNone(a.intersection_line(geom.Line((0, 0), (4, -3))))
+        self.assertIsNone(a.intersection_line(geom.Line((-1, 0), (0, 5))))
+        self.assertEqual(
+                a.intersection_line(geom.Line((4, 0), (0, 3))),
+                geom.Line((0, 3), (4, 0)))
+        self.assertEqual(
+                a.intersection_line(geom.Line((0, 0), (5, 5))),
+                geom.Point(12/7, 12/7))
+        self.assertEqual(
+                a.intersection_line(geom.Line((4, 0), (-2, 1))),
+                geom.Point(4, 0))
+        self.assertEqual(
+                a.intersection_line(geom.Line((2, 1.5), (-2, 4.5))),
+                geom.Line((0, 3), (2, 1.5)))
+
 
 class TestBoundingBox(unittest.TestCase):
     def test_contains(self):
