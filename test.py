@@ -6,8 +6,8 @@ from geom import P, L, B, Pg
 
 class TestPoint(unittest.TestCase):
     def test_point_eq(self):
-        self.assertEqual(geom.Point((1, 1)), geom.Point((1.0, 1.0)))
-        self.assertNotEqual(geom.Point((1, 1)), geom.Point((1.0001, 1.0)))
+        self.assertEqual(P((1, 1)), P((1.0, 1.0)))
+        self.assertNotEqual(P((1, 1)), P((1.0001, 1.0)))
 
 
 class TestLine(unittest.TestCase):
@@ -17,7 +17,7 @@ class TestLine(unittest.TestCase):
 
     def test_constructor(self):
         with self.assertRaises(ValueError):
-            geom.Line((3, 5), (3.0, 5.0))
+            L((3, 5), (3.0, 5.0))
 
     def test_in_bound(self):
         with self.assertRaises(ValueError):
@@ -41,31 +41,31 @@ class TestLine(unittest.TestCase):
         assert geom.in_bound((-1, 2), (-4, 1), (0, 2)) is False
 
     def test_intersects_h(self):
-        self.assertTrue(geom.Line((0, 0), (2, 2)).intersects_y(1))
-        self.assertTrue(geom.Line((2, 2), (0, 0)).intersects_y(1))
-        self.assertFalse(geom.Line((-1, -1), (5, -1)).intersects_y(-1))
-        self.assertFalse(geom.Line((2, 2), (0, 2)).intersects_y(1))
-        self.assertFalse(geom.Line((0, 0), (-1, -1)).intersects_y(1))
+        self.assertTrue(L((0, 0), (2, 2)).intersects_y(1))
+        self.assertTrue(L((2, 2), (0, 0)).intersects_y(1))
+        self.assertFalse(L((-1, -1), (5, -1)).intersects_y(-1))
+        self.assertFalse(L((2, 2), (0, 2)).intersects_y(1))
+        self.assertFalse(L((0, 0), (-1, -1)).intersects_y(1))
 
     def test_get_intercept_h(self):
-        self.assertEqual(geom.Line((1, 1), (3, 3)).get_y_intercept(2), 2)
-        self.assertEqual(geom.Line((3, 4), (5, 1)).get_y_intercept(2), 13/3)
+        self.assertEqual(L((1, 1), (3, 3)).get_y_intercept(2), 2)
+        self.assertEqual(L((3, 4), (5, 1)).get_y_intercept(2), 13/3)
 
     def test_extrapolate_intersection(self):
         # Vertical/horizontal
-        a = geom.Line((3, 3), (3, 4))
-        b = geom.Line((9, 9), (7, 9))
+        a = L((3, 3), (3, 4))
+        b = L((9, 9), (7, 9))
         expect = (3, 9)
         self.assertPointEqual(a.extrapolate_intersection(b), expect)
         self.assertPointEqual(b.extrapolate_intersection(a), expect)
 
         # Both vertical
-        b = geom.Line((7, 7), (7, 5))
+        b = L((7, 7), (7, 5))
         self.assertIsNone(a.extrapolate_intersection(b))
         self.assertIsNone(b.extrapolate_intersection(a))
 
         # Vertical/non-orthogonal
-        b = geom.Line((1, 2), (5, 3))
+        b = L((1, 2), (5, 3))
         expect = (3, 2.5)
         self.assertPointEqual(a.extrapolate_intersection(b), expect)
         self.assertPointEqual(b.extrapolate_intersection(a), expect)
@@ -74,7 +74,7 @@ class TestLine(unittest.TestCase):
         self.assertPointEqual(a.extrapolate_intersection(b), expect)
         self.assertPointEqual(b.extrapolate_intersection(a), expect)
 
-        b = geom.Line((4, 5), (5, 2))
+        b = L((4, 5), (5, 2))
         expect = (3, 8)
         self.assertPointEqual(a.extrapolate_intersection(b), expect)
         self.assertPointEqual(b.extrapolate_intersection(a), expect)
@@ -84,26 +84,26 @@ class TestLine(unittest.TestCase):
         self.assertPointEqual(b.extrapolate_intersection(a), expect)
 
         # Both horizontal
-        a = geom.Line((1, 2), (4, 2))
-        b = geom.Line((5, 6), (6, 6))
+        a = L((1, 2), (4, 2))
+        b = L((5, 6), (6, 6))
         self.assertIsNone(a.extrapolate_intersection(b))
         self.assertIsNone(b.extrapolate_intersection(a))
 
         # Horizontal/vertical
-        b = geom.Line((9, 3), (9, -1))
+        b = L((9, 3), (9, -1))
         expect = (9, 2)
         self.assertPointEqual(a.extrapolate_intersection(b), expect)
         self.assertPointEqual(b.extrapolate_intersection(a), expect)
 
         # Horizontal/non-orthogonal
-        b = geom.Line((9, 3), (10, 5))
+        b = L((9, 3), (10, 5))
         expect = (8.5, 2)
         self.assertPointEqual(a.extrapolate_intersection(b), expect)
         self.assertPointEqual(b.extrapolate_intersection(a), expect)
 
         # Both non-orthogonal
-        a = geom.Line((0, 1), (4, 2))
-        b = geom.Line((2, 4), (4, 3))
+        a = L((0, 1), (4, 2))
+        b = L((2, 4), (4, 3))
         expect = (5 + 1/3, 2 + 1/3)
         self.assertPointEqual(a.extrapolate_intersection(b), expect)
         self.assertPointEqual(b.extrapolate_intersection(a), expect)
@@ -122,109 +122,109 @@ class TestLine(unittest.TestCase):
 
     def test_intersects_point(self):
         # Vertical
-        line = geom.Line((3, 3), (3, 4))
-        self.assertTrue(line.intersects_point(geom.Point(3, 3.5)))
-        self.assertFalse(line.intersects_point(geom.Point(4, 3)))
+        line = L((3, 3), (3, 4))
+        self.assertTrue(line.intersects_point(P(3, 3.5)))
+        self.assertFalse(line.intersects_point(P(4, 3)))
 
         # Horizontal
-        line = geom.Line((-2, -2), (2, -2))
-        self.assertTrue(line.intersects_point(geom.Point(0, -2)))
-        self.assertFalse(line.intersects_point(geom.Point(0, -1.999)))
+        line = L((-2, -2), (2, -2))
+        self.assertTrue(line.intersects_point(P(0, -2)))
+        self.assertFalse(line.intersects_point(P(0, -1.999)))
 
         # Other
-        line = geom.Line((0, 0), (2, 2))
-        self.assertTrue(line.intersects_point(geom.Point(1, 1)))
-        self.assertFalse(line.intersects_point(geom.Point(3, 3)))
+        line = L((0, 0), (2, 2))
+        self.assertTrue(line.intersects_point(P(1, 1)))
+        self.assertFalse(line.intersects_point(P(3, 3)))
 
     def test_intersects_line(self):
         # Vertical
-        a = geom.Line((3, 3), (3, 5))
-        self.assertFalse(a.intersects_line(geom.Line((4, 3), (4, 5))))
-        self.assertFalse(a.intersects_line(geom.Line((0, 2), (4, 2))))
-        self.assertTrue(a.intersects_line(geom.Line((3, 3), (4, 4))))
-        self.assertTrue(a.intersects_line(geom.Line((0, 1), (5, 6))))
-        self.assertTrue(a.intersects_line(geom.Line((3, 4), (3, 6))))
+        a = L((3, 3), (3, 5))
+        self.assertFalse(a.intersects_line(L((4, 3), (4, 5))))
+        self.assertFalse(a.intersects_line(L((0, 2), (4, 2))))
+        self.assertTrue(a.intersects_line(L((3, 3), (4, 4))))
+        self.assertTrue(a.intersects_line(L((0, 1), (5, 6))))
+        self.assertTrue(a.intersects_line(L((3, 4), (3, 6))))
 
         # Horizontal
-        a = geom.Line((3, 3), (-1, 3))
-        self.assertFalse(a.intersects_line(geom.Line((-1, 2), (5, 2))))
-        self.assertFalse(a.intersects_line(geom.Line((0, 2), (0, 0))))
-        self.assertTrue(a.intersects_line(geom.Line((3, 3), (4, 4))))
-        self.assertTrue(a.intersects_line(geom.Line((0, 0), (1, 5))))
-        self.assertTrue(a.intersects_line(geom.Line((0, 3), (1, 3))))
+        a = L((3, 3), (-1, 3))
+        self.assertFalse(a.intersects_line(L((-1, 2), (5, 2))))
+        self.assertFalse(a.intersects_line(L((0, 2), (0, 0))))
+        self.assertTrue(a.intersects_line(L((3, 3), (4, 4))))
+        self.assertTrue(a.intersects_line(L((0, 0), (1, 5))))
+        self.assertTrue(a.intersects_line(L((0, 3), (1, 3))))
 
         # Other
-        a = geom.Line((0, 3), (4, 0))
-        self.assertFalse(a.intersects_line(geom.Line((0, 0), (4, -3))))
-        self.assertFalse(a.intersects_line(geom.Line((-1, 0), (0, 5))))
-        self.assertTrue(a.intersects_line(geom.Line((0, 0), (5, 5))))
-        self.assertTrue(a.intersects_line(geom.Line((4, 0), (-2, 1))))
-        self.assertTrue(a.intersects_line(geom.Line((2, 1.5), (-2, 4.5))))
+        a = L((0, 3), (4, 0))
+        self.assertFalse(a.intersects_line(L((0, 0), (4, -3))))
+        self.assertFalse(a.intersects_line(L((-1, 0), (0, 5))))
+        self.assertTrue(a.intersects_line(L((0, 0), (5, 5))))
+        self.assertTrue(a.intersects_line(L((4, 0), (-2, 1))))
+        self.assertTrue(a.intersects_line(L((2, 1.5), (-2, 4.5))))
 
     def test_intersection_line(self):
         # Vertical
-        a = geom.Line((3, 3), (3, 5))
-        self.assertIsNone(a.intersection_line(geom.Line((4, 3), (4, 5))))
-        self.assertIsNone(a.intersection_line(geom.Line((0, 2), (4, 2))))
+        a = L((3, 3), (3, 5))
+        self.assertIsNone(a.intersection_line(L((4, 3), (4, 5))))
+        self.assertIsNone(a.intersection_line(L((0, 2), (4, 2))))
         self.assertEqual(
-                a.intersection_line(geom.Line((3, 3), (4, 4))),
-                geom.Point(3, 3))
+                a.intersection_line(L((3, 3), (4, 4))),
+                P(3, 3))
         self.assertEqual(
-                a.intersection_line(geom.Line((0, 1), (5, 6))),
-                geom.Point(3, 4))
+                a.intersection_line(L((0, 1), (5, 6))),
+                P(3, 4))
         self.assertEqual(
-                a.intersection_line(geom.Line((3, 4), (3, 6))),
-                geom.Line((3, 4), (3, 5)))
+                a.intersection_line(L((3, 4), (3, 6))),
+                L((3, 4), (3, 5)))
 
         # Horizontal
-        a = geom.Line((3, 3), (-1, 3))
-        self.assertIsNone(a.intersection_line(geom.Line((-1, 2), (5, 2))))
-        self.assertIsNone(a.intersection_line(geom.Line((0, 2), (0, 0))))
+        a = L((3, 3), (-1, 3))
+        self.assertIsNone(a.intersection_line(L((-1, 2), (5, 2))))
+        self.assertIsNone(a.intersection_line(L((0, 2), (0, 0))))
         self.assertEqual(
-                a.intersection_line(geom.Line((3, 3), (4, 4))),
-                geom.Point(3, 3))
+                a.intersection_line(L((3, 3), (4, 4))),
+                P(3, 3))
         self.assertEqual(
-                a.intersection_line(geom.Line((0, 0), (1, 5))),
-                geom.Point(3/5, 3))
+                a.intersection_line(L((0, 0), (1, 5))),
+                P(3/5, 3))
         self.assertEqual(
-                a.intersection_line(geom.Line((0, 3), (1, 3))),
-                geom.Line((1, 3), (0, 3)))
+                a.intersection_line(L((0, 3), (1, 3))),
+                L((1, 3), (0, 3)))
 
         # Other
-        a = geom.Line((0, 3), (4, 0))
-        self.assertIsNone(a.intersection_line(geom.Line((0, 0), (4, -3))))
-        self.assertIsNone(a.intersection_line(geom.Line((-1, 0), (0, 5))))
+        a = L((0, 3), (4, 0))
+        self.assertIsNone(a.intersection_line(L((0, 0), (4, -3))))
+        self.assertIsNone(a.intersection_line(L((-1, 0), (0, 5))))
         self.assertEqual(
-                a.intersection_line(geom.Line((4, 0), (0, 3))),
-                geom.Line((0, 3), (4, 0)))
+                a.intersection_line(L((4, 0), (0, 3))),
+                L((0, 3), (4, 0)))
         self.assertEqual(
-                a.intersection_line(geom.Line((0, 0), (5, 5))),
-                geom.Point(12/7, 12/7))
+                a.intersection_line(L((0, 0), (5, 5))),
+                P(12/7, 12/7))
         self.assertEqual(
-                a.intersection_line(geom.Line((4, 0), (-2, 1))),
-                geom.Point(4, 0))
+                a.intersection_line(L((4, 0), (-2, 1))),
+                P(4, 0))
         self.assertEqual(
-                a.intersection_line(geom.Line((2, 1.5), (-2, 4.5))),
-                geom.Line((0, 3), (2, 1.5)))
+                a.intersection_line(L((2, 1.5), (-2, 4.5))),
+                L((0, 3), (2, 1.5)))
 
 
 class TestBoundingBox(unittest.TestCase):
     def test_contains(self):
-        bbox = geom.BoundingBox(-2, -7/3, 3.1, 6)
+        bbox = B(-2, -7/3, 3.1, 6)
         f = bbox.contains
-        self.assertTrue(f(geom.Point(0, 0)))
-        self.assertFalse(f(geom.Point(0, 6)))
-        self.assertFalse(f(geom.Point(12, -8)))
+        self.assertTrue(f(P(0, 0)))
+        self.assertFalse(f(P(0, 6)))
+        self.assertFalse(f(P(12, -8)))
 
-        self.assertTrue(f(geom.Line((0, 0), (1, 1))))
-        self.assertFalse(f(geom.Line((0, 0), (7, 7))))
-        self.assertFalse(f(geom.Line((-3, 0), (-4, 1))))
+        self.assertTrue(f(L((0, 0), (1, 1))))
+        self.assertFalse(f(L((0, 0), (7, 7))))
+        self.assertFalse(f(L((-3, 0), (-4, 1))))
         # Lines on the boundary are not contained
-        self.assertFalse(f(geom.Line((3.1000000001, 0), (3.1000000001, -1))))
+        self.assertFalse(f(L((3.1000000001, 0), (3.1000000001, -1))))
 
-        self.assertTrue(f(geom.BoundingBox(0, 0, 1, 1)))
-        self.assertFalse(f(geom.BoundingBox(0, 0, 1000, 1000)))
-        self.assertFalse(f(geom.BoundingBox(-7, -7, -6, -6)))
+        self.assertTrue(f(B(0, 0, 1, 1)))
+        self.assertFalse(f(B(0, 0, 1000, 1000)))
+        self.assertFalse(f(B(-7, -7, -6, -6)))
 
         # A shape contains itself
         self.assertTrue(f(bbox))
@@ -235,7 +235,7 @@ class TestBoundingBox(unittest.TestCase):
         self.assertFalse(f(poly))
 
     def test_intersects(self):
-        bbox = geom.BoundingBox(0, 0, 10, 5)
+        bbox = B(0, 0, 10, 5)
         f = bbox.intersects
 
         # Points
@@ -510,6 +510,50 @@ class TestPolygon(unittest.TestCase):
         self.assertFalse(f(L((1, 2), (1, 5))))
         self.assertFalse(f(L((4, 4), (6, 4))))
 
+    def test_contains_bbox(self):
+        # simple triangle
+        poly = geom.Polygon([(1, 2), (3, 5), (4, 1), (1, 2)])
+        f = poly.contains_bbox
+        # Fully internal
+        self.assertTrue(f(B(2, 2, 3, 3)))
+        # Fully external
+        self.assertFalse(f(B(20, 20, 30, 30)))
+        # Partly external
+        self.assertFalse(f(B(1, 1, 3, 3)))
+        # Point contact with boundary
+        self.assertTrue(f(B(2, 2, 3.5, 3)))
+
+        # octagon centred on (0, 0)
+        poly = geom.Polygon([
+                (1, 2),
+                (2, 1),
+                (2, -1),
+                (1, -2),
+                (-1, -2),
+                (-2, -1),
+                (-2, 1),
+                (-1, 2),
+                (1, 2),
+                ])
+        f = poly.contains_bbox
+        # Sharing entire boundary lines
+        self.assertTrue(f(B(-2, -1, 2, 1)))
+        self.assertFalse(f(B(-1, 2, 1, 4)))
+
+        # horseshoe
+        poly = geom.Polygon([
+                (1, 1),
+                (1, 6),
+                (2, 5),
+                (2, 2),
+                (4, 2),
+                (3, 4),
+                (5, 4),
+                (4, 0),
+                (1, 1),
+                ])
+        f = poly.contains_bbox
+        self.assertTrue(f(B(2, 1, 4, 1.5)))
 
     def test_intersects_point(self):
         # horseshoe

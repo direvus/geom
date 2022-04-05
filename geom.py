@@ -527,6 +527,15 @@ class Shape(Geometry):
         """
         raise NotImplementedError()
 
+    def covers(self, other):
+        """Return whether this shape covers some geometry.
+
+        A shape covers another geometry if no part of that geometry lies in
+        the exterior of the shape.  That is, the entire geometry is within the
+        interior and/or the boundary of the shape.
+        """
+        raise NotImplementedError()
+
 
 class BoundingBox(Shape):
     def __init__(self, min_x, min_y, max_x, max_y):
@@ -849,6 +858,8 @@ class Polygon(Shape):
                     return False
             return True
 
+        if any([x == other for x in self.lines]):
+            return False
         lines = [x for x in self.lines if x.intersects(other)]
         length = len(lines)
         if length == 0:
@@ -868,6 +879,27 @@ class Polygon(Shape):
                 return False
         return True
 
+    def contains_bbox(self, other):
+        """Return whether this polygon contains a BoundingBox.
+
+        See comments at Shape.contains for the particulars.
+        """
+        points = other.points
+        for p in points:
+            if self.disjoint(p):
+                return False
+
+        if self.is_convex:
+            return True
+
+        for line in other.boundary:
+            if not self.covers_line(line):
+                return False
+        return True
+
+    def contains_polygon(self, other):
+        pass
+
     def contains(self, other):
         """Return whether this polygon contains some other geometry.
 
@@ -884,8 +916,50 @@ class Polygon(Shape):
         if isinstance(other, Line):
             return self.contains_line(other)
 
-        # TODO: poly in poly
-        raise ValueError(f"Unsupported type for polygon contains: {type(other)}.")
+        if isinstance(other, BoundingBox):
+            return self.contains_bbox(other)
+
+        if isinstance(other, Polygon):
+            return self.contains_polygon(other)
+
+        raise ValueError(
+                f"Unsupported type for polygon contains: {type(other)}.")
+
+    def covers_line(self, other):
+        """Return whether this polygon covers a Line.
+
+        See comments at Shape.covers for the particulars.
+        """
+        if self.disjoint(other.a) or self.disjoint(other.b):
+            return False
+
+        # Shortcut: for convex polygons, since we have already ruled out
+        # endpoints outside the polygon, the line must either lie on a
+        # boundary, or be contained by the polygon.
+        if self.is_convex:
+            return True
+
+        if any([x == other for x in self.lines]):
+            return True
+
+        lines = [x for x in self.lines if x.intersects(other)]
+        length = len(lines)
+        if length == 0:
+            # No line intersections, must be fully internal
+            return True
+        if len(lines) == 1 and isinstance(lines[0] & other, Line):
+            # Line intersection on exactly one boundary
+            return True
+
+        # If we've arrived here, the line is covered if and only if neither
+        # endpoint of the line is out of bounds of any of the polygon
+        # boundaries that it intersects.
+        for line in lines:
+            if (
+                    line.in_bound(other.a) is False or
+                    line.in_bound(other.b) is False):
+                return False
+        return True
 
     def disjoint(self, other):
         """Return whether this polygon is disjoint with some other geometry.
