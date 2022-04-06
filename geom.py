@@ -2,7 +2,7 @@
 # coding: utf-8
 import math
 
-from util import float_eq, float_ne, float_gt, float_lt, in_bbox
+from util import float_eq, float_ne, float_gt, float_lt
 
 
 class Geometry():
@@ -983,6 +983,44 @@ class Polygon(Shape):
         """
         return not self.intersects(other)
 
+    def intersects_line(self, other):
+        """Return whether this polygon intersects a Line.
+
+        See comments at Geometry.intersects for the particulars.
+        """
+        for line in self.lines:
+            if line.intersects(other):
+                return True
+        return self.contains(other)
+
+    def intersects_bbox(self, other):
+        """Return whether this polygon intersects a boundingbox.
+
+        See comments at geometry.intersects for the particulars.
+        """
+        for point in other.points:
+            if self.intersects(point):
+                return True
+
+        for line in self.lines:
+            if other.intersects(line):
+                return True
+        return other.contains(self)
+
+    def intersects_polygon(self, other):
+        """Return whether this polygon intersects another polygon.
+
+        See comments at geometry.intersects for the particulars.
+        """
+        for point in other.points:
+            if self.intersects(point):
+                return True
+
+        for line in other.lines:
+            if self.intersects(line):
+                return True
+        return other.contains(self)
+
     def intersects(self, other):
         """Return whether this polygon intersects some other geometry.
 
@@ -1000,7 +1038,15 @@ class Polygon(Shape):
                     return True
             return self.contains_point(other)
 
-        # TODO: bbox/line/poly in poly
+        if isinstance(other, Line):
+            return self.intersects_line(other)
+
+        if isinstance(other, BoundingBox):
+            return self.intersects_bbox(other)
+
+        if isinstance(other, Polygon):
+            return self.intersects_polygon(other)
+
         raise ValueError(
                 f"Unsupported type for polygon intersects: {type(other)}.")
 

@@ -339,13 +339,6 @@ class TestPolygon(unittest.TestCase):
                 ]
         assert geom.is_convex(poly) is False
 
-    def test_in_bbox(self):
-        bbox = (-100/3, -47.1027895, 5, 22.9)
-        self.assertTrue(geom.in_bbox(bbox, (0, 0)))
-        self.assertTrue(geom.in_bbox(bbox, (-33.3333333333, 22.9)))
-        self.assertFalse(geom.in_bbox(bbox, (-33.3333333333, 22.9), False))
-        self.assertFalse(geom.in_bbox(bbox, (6, 0)))
-
     def test_divide_polygon(self):
         poly = [
                 (1, 1),
@@ -647,3 +640,161 @@ class TestPolygon(unittest.TestCase):
         for y in range(len(expect)):
             for x in range(len(expect[y])):
                 self.assertIs(f(P(x, y)), expect[y][x], f"({x}, {y})")
+
+    def test_intersects_line(self):
+        # simple triangle
+        poly = Pg([(1, 2), (3, 5), (4, 1), (1, 2)])
+        f = poly.intersects
+
+        # Fully external
+        self.assertFalse(f(L((10, 0), (10, 2))))
+        self.assertFalse(f(L((2, 0), (0, 3))))
+        # Partly external
+        self.assertTrue(f(L((3, 3), (5, 3))))
+        # Fully internal
+        self.assertTrue(f(L((3, 2), (2, 3))))
+        # Spanning
+        self.assertTrue(f(L((1, 2), (3.5, 3))))
+        # On boundary
+        self.assertTrue(f(L((3.5, 3), (3.75, 2))))
+        self.assertTrue(f(L((3.5, 3), (4.5, -1))))
+
+        # horseshoe
+        poly = Pg([
+                (1, 1),
+                (1, 6),
+                (2, 5),
+                (2, 2),
+                (4, 2),
+                (3, 4),
+                (5, 4),
+                (4, 0),
+                (1, 1),
+                ])
+        f = poly.intersects
+
+        # Fully external
+        self.assertFalse(f(L((10, 0), (10, 2))))
+        self.assertFalse(f(L((3, 0), (0, 0))))
+        # Partly external
+        self.assertTrue(f(L((4, 3), (6, 3))))
+        # Fully internal
+        self.assertTrue(f(L((3, 1), (2, 1))))
+        # Spanning
+        self.assertTrue(f(L((1, 4), (2, 4))))
+        # From boundary to internal
+        self.assertTrue(f(L((1, 2), (3, 1))))
+        # On boundary
+        self.assertTrue(f(L((1, 2), (1, 5))))
+        self.assertTrue(f(L((4, 4), (6, 4))))
+
+    def test_intersects_bbox(self):
+        # simple triangle
+        poly = Pg([(1, 2), (3, 5), (4, 1), (1, 2)])
+        f = poly.intersects
+        # Fully internal
+        self.assertTrue(f(B(2, 2, 3, 3)))
+        # Fully external
+        self.assertFalse(f(B(20, 20, 30, 30)))
+        # Partly external
+        self.assertTrue(f(B(1, 1, 3, 3)))
+        # Point contact with boundary
+        self.assertTrue(f(B(2, 2, 3.5, 3)))
+
+        # octagon centred on (0, 0)
+        poly = Pg([
+                (1, 2),
+                (2, 1),
+                (2, -1),
+                (1, -2),
+                (-1, -2),
+                (-2, -1),
+                (-2, 1),
+                (-1, 2),
+                (1, 2),
+                ])
+        f = poly.intersects
+        # Sharing entire boundary lines
+        self.assertTrue(f(B(-2, -1, 2, 1)))
+        self.assertTrue(f(B(-1, 2, 1, 4)))
+
+        # horseshoe
+        poly = Pg([
+                (1, 1),
+                (1, 6),
+                (2, 5),
+                (2, 2),
+                (4, 2),
+                (3, 4),
+                (5, 4),
+                (4, 0),
+                (1, 1),
+                ])
+        f = poly.intersects
+        self.assertTrue(f(B(2, 1, 4, 1.5)))
+
+    def test_intersects_poly(self):
+        # Simple triangle
+        a = Pg([(1, 2), (3, 5), (4, 1), (1, 2)])
+        f = a.intersects
+        # Fully internal
+        b = Pg([(2, 2), (3, 4), (3, 2), (2, 2)])
+        self.assertTrue(f(b))
+        # Fully external
+        b = b.move(10, 0)
+        self.assertFalse(f(b))
+        # Partly external
+        b = b.move(-10, -2)
+        self.assertTrue(f(b))
+        # Point contact with boundary
+        self.assertTrue(f(Pg([(3.5, 3), (2, 2), (3, 4), (3.5, 3)])))
+
+        # Octagon centred on (0, 0)
+        a = Pg([
+                (1, 2),
+                (2, 1),
+                (2, -1),
+                (1, -2),
+                (-1, -2),
+                (-2, -1),
+                (-2, 1),
+                (-1, 2),
+                (1, 2),
+                ])
+        f = a.intersects
+        # Sharing entire boundary lines
+        b = Pg([
+            (-2, -1),
+            (-2,  1),
+            ( 0,  2),
+            ( 2,  1),
+            ( 2, -1),
+            ( 0, -2),
+            (-2, -1),
+            ])
+        self.assertTrue(f(b))
+
+        b = b.move(4, 0)
+        self.assertTrue(f(b))
+
+        # Horseshoe
+        a = Pg([
+                (1, 1),
+                (1, 6),
+                (2, 5),
+                (2, 2),
+                (4, 2),
+                (3, 4),
+                (5, 4),
+                (4, 0),
+                (1, 1),
+                ])
+        f = a.intersects
+        b = Pg([
+            (1, 1),
+            (1, 3),
+            (4, 3),
+            (4, 1),
+            (1, 1),
+            ])
+        self.assertTrue(f(b))
