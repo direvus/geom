@@ -327,6 +327,9 @@ class TestBoundingBox(unittest.TestCase):
         a = B(0, 0, 10, 5)
         f = a.intersection
 
+        b = B(-5, -1, -1, 4)
+        self.assertIsNone(f(b))
+
         b = B(2, 3, 8, 4)
         self.assertEqual(f(b), b)
 
@@ -338,6 +341,39 @@ class TestBoundingBox(unittest.TestCase):
 
         b = B(8, -2, 12, 2)
         self.assertEqual(f(b), B(8, 0, 10, 2))
+
+    def test_intersection_polygon(self):
+        bbox = B(0, 0, 10, 5)
+        f = bbox.intersection
+
+        # No intersection
+        poly = Pg([(12, 1), (13, 4), (17, 2), (12, 1)])
+        self.assertIsNone(f(poly))
+
+        # Fully internal
+        poly = Pg([(1, 1), (3, 4), (7, 2), (1, 1)])
+        self.assertEqual(f(poly), poly)
+
+        # Fully containing
+        poly = Pg([(-1, -1), (-2, 9), (13, 11), (14, -6), (-1, -1)])
+        self.assertEqual(f(poly), bbox)
+
+        # Partly internal
+        poly = Pg([(8, 0), (12, 4), (12, 0), (8, 0)])
+        self.assertEqual(f(poly), Pg([(8, 0), (10, 2), (10, 0), (8, 0)]))
+
+        # Internal, shared boundary
+        poly = Pg([(0, 0), (4, 5), (4, 0), (0, 0)])
+        self.assertEqual(f(poly), poly)
+
+        # External, shared boundary
+        poly = Pg([(0, 0), (-4, 0), (0, 5), (0, 0)])
+        self.assertEqual(f(poly), L((0, 0), (0, 5)))
+
+        # Point contact
+        poly = Pg([(3, 9), (7, 9), (5, 5), (3, 9)])
+        self.assertEqual(f(poly), P(5, 5))
+
 
 class TestPolygon(unittest.TestCase):
     def test_constructor(self):

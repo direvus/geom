@@ -626,7 +626,7 @@ class BoundingBox(Shape):
             return False
 
         if isinstance(other, Polygon):
-            if self.contains(other):
+            if self.covers(other) or other.covers(self):
                 return True
             for box_line in self.boundary:
                 for poly_line in other.lines:
@@ -733,6 +733,9 @@ class BoundingBox(Shape):
         if self == other:
             return self
 
+        if self.disjoint(other):
+            return None
+
         return BoundingBox(
                 max(self.min_x, other.min_x),
                 max(self.min_y, other.min_y),
@@ -742,9 +745,16 @@ class BoundingBox(Shape):
     def intersection_polygon(self, other):
         """Return the intersection of this box with a Line.
 
-        The result can be None, a Point, a Line or a Polygon.
+        The result can be any of None, Point, Line, Polygon or MultiPolygon.
         """
-        raise NotImplementedError()
+        if self.disjoint(other):
+            return None
+
+        if self.covers(other):
+            return other
+
+        if other.covers(self):
+            return self
 
     def intersection(self, other):
         if isinstance(other, Point):
@@ -769,6 +779,9 @@ class BoundingBox(Shape):
 
     def __str__(self):
         return f"{self.min_x},{self.min_y},{self.max_x},{self.max_y}"
+
+    def __repr__(self):
+        return f"BoundingBox({self})"
 
 
 class Polygon(Shape):
@@ -1077,6 +1090,37 @@ class Polygon(Shape):
                     line.in_bound(other.b) is False):
                 return False
         return True
+
+    def covers_bbox(self, other):
+        """Return whether this polygon covers a BoundingBox.
+
+        See comments at Shape.covers for the particulars.
+        """
+        points = other.points
+        for p in points:
+            if self.disjoint(p):
+                return False
+
+        if self.is_convex:
+            return True
+
+        for line in other.boundary:
+            if not self.covers_line(line):
+                return False
+        return True
+
+    def covers(self, other):
+        if self.disjoint(other):
+            return False
+
+        if isinstance(other, Point):
+            return True
+
+        if isinstance(other, Line):
+            return self.covers_line(other)
+
+        if isinstance(other, BoundingBox):
+            return self.covers_bbox(other)
 
     def disjoint(self, other):
         """Return whether this polygon is disjoint with some other geometry.
