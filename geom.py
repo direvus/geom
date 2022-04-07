@@ -77,6 +77,8 @@ class Point(Geometry):
         Two points are considered equal if the differences between their
         respective ordinates are both less than the EPSILON value.
         """
+        if other is None:
+            return False
         if isinstance(other, (Line, Shape)):
             return False
         if not isinstance(other, Point):
@@ -469,6 +471,9 @@ class Line(Geometry):
         if isinstance(other, Line):
             return self.intersection_line(other)
 
+        if isinstance(other, Shape):
+            return other.intersection(self)
+
     def move(self, x=0, y=0):
         """Return a new Line spatially shifted relative to this Line."""
         return Line(self.a.move(x, y), self.b.move(x, y))
@@ -663,6 +668,69 @@ class BoundingBox(Shape):
                 if self.disjoint(p):
                     return False
             return True
+
+    def covers(self, other):
+        if isinstance(other, Point):
+            return not self.disjoint(other)
+
+        if isinstance(other, Line):
+            # The line is covered if neither of its points is outside the box.
+            return not (self.disjoint(other.a) or self.disjoint(other.b))
+
+        if isinstance(other, BoundingBox):
+            return not (
+                    float_lt(other.min_x, self.min_x) or
+                    float_gt(other.max_x, self.max_x) or
+                    float_lt(other.min_y, self.min_y) or
+                    float_gt(other.max_y, self.max_y))
+
+        if isinstance(other, Polygon):
+            for p in other.points:
+                if self.disjoint(p):
+                    return False
+            return True
+
+    def intersection_line(self, other):
+        """Return the intersection of this box with a Line.
+
+        The result will be either None, a Point or a Line.
+        """
+        if self.disjoint(other):
+            return None
+
+        if self.covers(other):
+            return other
+
+        if other.is_vertical:
+            x = other.a.x
+            if other.a.y < other.b.y:
+                a = (x, max(other.a.y, self.min_y))
+                b = (x, min(other.b.y, self.max_y))
+            else:
+                b = (x, max(other.b.y, self.min_y))
+                a = (x, min(other.a.y, self.max_y))
+            return Line(a, b)
+
+        a, b = other.a, other.b
+        for boundary in self.boundary:
+            sect = boundary.intersection(Line(a, b))
+            if isinstance(sect, Line):
+                return sect
+            if isinstance(sect, Point):
+                if boundary.in_bound(a) is False:
+                    a = sect
+                if boundary.in_bound(b) is False:
+                    b = sect
+                if a == b:
+                    return a
+        return Line(a, b)
+
+    def intersection(self, other):
+        if isinstance(other, Point):
+            return other if self.intersects(other) else None
+
+        if isinstance(other, Line):
+            return self.intersection_line(other)
 
     def __str__(self):
         return f"{self.min_x},{self.min_y},{self.max_x},{self.max_y}"

@@ -287,6 +287,42 @@ class TestBoundingBox(unittest.TestCase):
         poly = poly.move(0, 4)
         self.assertTrue(f(poly))
 
+    def test_intersection_point(self):
+        bbox = B(0, 0, 10, 5)
+        f = bbox.intersection
+
+        self.assertIsNone(f(P(-1, 0)))
+        p = P(0, 0)
+        self.assertEqual(f(p), p)
+        p = P(3, 3)
+        self.assertEqual(f(p), p)
+        p = P(10, 5)
+        self.assertEqual(f(p), p)
+
+    def test_intersection_line(self):
+        bbox = B(0, 0, 10, 5)
+        f = bbox.intersection
+
+        # Fully external
+        self.assertIsNone(f(L((11, 1), (12, 6))))
+
+        # Fully internal
+        line = L((1, 1), (9, 4))
+        self.assertEqual(f(line), line)
+
+        # Partly internal
+        self.assertEqual(f(L((-1, 3), (1, 3))), L((0, 3), (1, 3)))
+        self.assertEqual(f(L((5, 0), (11, 12))), L((5, 0), (7.5, 5)))
+
+        # Shared boundary
+        self.assertEqual(f(L((10, 5), (10, 0))), L((10, 5), (10, 0)))
+        self.assertEqual(f(L((1, 5), (9, 5))), L((1, 5), (9, 5)))
+        self.assertEqual(f(L((0, 2), (0, -2))), L((0, 2), (0, 0)))
+
+        # Point contact
+        self.assertEqual(f(L((15, 0), (5, 10))), P(10, 5))
+        self.assertEqual(f(L((3, 5), (4, 8))), P(3, 5))
+
 
 class TestPolygon(unittest.TestCase):
     def test_constructor(self):
