@@ -725,12 +725,47 @@ class BoundingBox(Shape):
                     return a
         return Line(a, b)
 
+    def intersection_bbox(self, other):
+        """Return the intersection of this box with another box.
+
+        The result can be None, a Point, a Line or a BoundingBox.
+        """
+        if self == other:
+            return self
+
+        return BoundingBox(
+                max(self.min_x, other.min_x),
+                max(self.min_y, other.min_y),
+                min(self.max_x, other.max_x),
+                min(self.max_y, other.max_y))
+
+    def intersection_polygon(self, other):
+        """Return the intersection of this box with a Line.
+
+        The result can be None, a Point, a Line or a Polygon.
+        """
+        raise NotImplementedError()
+
     def intersection(self, other):
         if isinstance(other, Point):
             return other if self.intersects(other) else None
 
         if isinstance(other, Line):
             return self.intersection_line(other)
+
+        if isinstance(other, BoundingBox):
+            return self.intersection_bbox(other)
+
+        if isinstance(other, Polygon):
+            return self.intersection_polygon(other)
+
+    def as_tuple(self):
+        return (self.min_x, self.min_y, self.max_x, self.max_y)
+
+    def __eq__(self, other):
+        if not isinstance(other, BoundingBox):
+            return False
+        return self.as_tuple() == other.as_tuple()
 
     def __str__(self):
         return f"{self.min_x},{self.min_y},{self.max_x},{self.max_y}"

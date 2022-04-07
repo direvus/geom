@@ -323,6 +323,21 @@ class TestBoundingBox(unittest.TestCase):
         self.assertEqual(f(L((15, 0), (5, 10))), P(10, 5))
         self.assertEqual(f(L((3, 5), (4, 8))), P(3, 5))
 
+    def test_intersection_bbox(self):
+        a = B(0, 0, 10, 5)
+        f = a.intersection
+
+        b = B(2, 3, 8, 4)
+        self.assertEqual(f(b), b)
+
+        b = B(-10, -2, 15, 10)
+        self.assertEqual(f(b), a)
+
+        b = a
+        self.assertEqual(f(b), a)
+
+        b = B(8, -2, 12, 2)
+        self.assertEqual(f(b), B(8, 0, 10, 2))
 
 class TestPolygon(unittest.TestCase):
     def test_constructor(self):
