@@ -25,7 +25,7 @@ class Geometry():
         degree of overlap between them:
         - Point & anything => Point
         - Line  & Line     => Line or Point
-        - Line  & Shape    => Line or Point
+        - Line  & Shape    => Line, Point or a Collection of Lines and Points
         - Shape & Shape    => Shape or Line or Point
 
         The intersection of a point with any geometry is the point itself, if
@@ -45,6 +45,14 @@ class Geometry():
 
     def __or__(self, other):
         return self.union(other)
+
+
+class Collection(Geometry):
+    def __init__(self, items):
+        self.items = set(tuple(items))
+
+    def __len__(self):
+        return len(self.items)
 
 
 class Point(Geometry):
@@ -89,6 +97,8 @@ class Point(Geometry):
         return 2
 
     def __getitem__(self, key):
+        if not isinstance(key, (str, int)):
+            raise TypeError()
         if key == 'x' or key == 0:
             return self.x
         if key == 'y' or key == 1:
@@ -459,7 +469,7 @@ class Line(Geometry):
         """Return the intersection of this line with some geometry.
 
         Depending on the type of the geometry, and the extent of overlap, this
-        will return None, a Point, or a Line.
+        will return None, a Point, a Line or a Collection of Points and Lines.
         """
         bbox = self.bbox
         if bbox.disjoint(other.bbox):
@@ -473,6 +483,34 @@ class Line(Geometry):
 
         if isinstance(other, Shape):
             return other.intersection(self)
+
+    def crop_line(self, other):
+        """Crop this line along an infinite line.
+
+        Consider the 'other' line as an infinite Euclidean extending in both
+        directions, and return a geometry that represents the part of this line
+        that falls on the right-hand side of the 'other' line.  The result can
+        be None, a Point, or a Line.
+        """
+        bound_a = other.in_bound(self.a)
+        bound_b = other.in_bound(self.b)
+
+        if bound_a is False and bound_b is False:
+            return None
+
+        if not (bound_a is False or bound_b is False):
+            return self
+
+        if bound_a is None:
+            return self.a
+        if bound_b is None:
+            return self.b
+
+        sect = self.extrapolate_intersection(other)
+        if bound_a is True:
+            return Line(self.a, sect)
+        else:
+            return Line(sect, self.b)
 
     def move(self, x=0, y=0):
         """Return a new Line spatially shifted relative to this Line."""
@@ -743,9 +781,10 @@ class BoundingBox(Shape):
                 min(self.max_y, other.max_y))
 
     def intersection_polygon(self, other):
-        """Return the intersection of this box with a Line.
+        """Return the intersection of this box with a Polygon.
 
-        The result can be any of None, Point, Line, Polygon or MultiPolygon.
+        The result can be any of None, Point, Line, Polygon, or a Collection of
+        geometries.
         """
         if self.disjoint(other):
             return None
@@ -755,6 +794,14 @@ class BoundingBox(Shape):
 
         if other.covers(self):
             return self
+
+        result = other
+        for line in self.boundary:
+            crop = result.crop_line(line)
+            if crop is None:
+                return line.intersection(result)
+            result = crop
+        return result
 
     def intersection(self, other):
         if isinstance(other, Point):
@@ -802,23 +849,27 @@ class Polygon(Shape):
 
         points = [Point(x) for x in value]
 
-        # Filter out consecutive identical points and redundant points.
-        self.points = []
+        # Filter out consecutive identical points.
+        last = None
+        distinct = []
+        for p in points:
+            if last is None or p != last:
+                distinct.append(p)
+                last = p
+        points = distinct
+
+        # Filter out redundant points.
         length = len(points)
+        self.points = []
         for i, p in enumerate(points):
-            if i > 0:
-                prev = points[i-1]
-                if p == prev:
+            if i > 0 and i < length - 1:
+                # If the boundary doesn't change angle after this point,
+                # then it makes no difference to the shape whether it is
+                # included or not.  So don't.
+                a = Line(points[i-1], p)
+                b = Line(p, points[i+1])
+                if a.angle == b.angle:
                     continue
-                if i < length - 1:
-                    # If the boundary doesn't change angle after this point,
-                    # then it makes no difference to the shape whether it is
-                    # included or not.  So don't.
-                    nxt = points[i+1]
-                    a = Line(prev, p)
-                    b = Line(p, nxt)
-                    if a.angle == b.angle:
-                        continue
             self.points.append(p)
 
         # If the polygon isn't closed, close it now.
@@ -850,9 +901,9 @@ class Polygon(Shape):
         return len(self.points)
 
     def __getitem__(self, key):
-        if isinstance(key, int):
+        if isinstance(key, (int, slice)):
             return self.points[key]
-        raise KeyError()
+        raise TypeError()
 
     def __contains__(self, point):
         """Return whether 'point' is equal to any of the polygon's vertices.
@@ -870,6 +921,14 @@ class Polygon(Shape):
 
     def __str__(self):
         return " → ".join(map(str, self.points))
+
+    def __eq__(self, other):
+        if not isinstance(other, Polygon):
+            return False
+        if len(self) != len(other):
+            return False
+        # TODO: equivalent polygons with different starting points
+        return self.points == self.points
 
     @property
     def bbox(self):
@@ -1197,10 +1256,134 @@ class Polygon(Shape):
         raise ValueError(
                 f"Unsupported type for polygon intersects: {type(other)}.")
 
+    def intersection_line(self, other):
+        """Return the intersection of this Polygon with a Line.
+
+        The result will be None, a Point, a Line, or a Collection of Points and
+        Lines.
+        """
+        if self.disjoint(other):
+            return None
+
+        if self.covers(other):
+            return other
+
+        if self.is_convex:
+            result = other
+            for line in self.lines:
+                crop = result.crop_line(line)
+                if not isinstance(crop, Line):
+                    return crop
+                result = crop
+            return result
+
+        # TODO: non-convex
+
+    def intersection(self, other):
+        """Return the intersection of this Polygon with some other geometry.
+        """
+        if self.disjoint(other):
+            return None
+
+        if isinstance(other, Point):
+            return other
+
+        if isinstance(other, Line):
+            return self.intersection_line(other)
+
+        raise NotImplementedError()
+
     def move(self, x=0, y=0):
         """Return a new Polygon spatially shifted relative to this one."""
         points = [p.move(x, y) for p in self.points]
         return Polygon(points)
+
+    def crop_line(self, line):
+        """Crop a polygon along an infinite line.
+
+        Consider the line as an infinite Euclidean extending in both
+        directions, and return a geometry that encloses the part of the
+        original polygon's interior that falls on the right-hand side of the
+        line.  The result can be None, a Polygon, or a MultiPolygon.
+        """
+        found = False
+        indexes = set()
+        exact = []
+        for i in range(len(self)):
+            p = self[i]
+            inbound = line.in_bound(p)
+            if not found and inbound is True:
+                found = True
+            if inbound is not False:
+                indexes.add(i)
+            if inbound is None:
+                exact.append(i)
+        if not found:
+            return None
+
+        if len(indexes) == len(self):
+            return self
+
+        if self.is_convex:
+            if len(exact) == 2:
+                # Shortcut: the crop line runs between two vertices of the
+                # polygon
+                points = self[:exact[0]+1] + self[exact[1]:]
+                return Polygon(points)
+
+            points = []
+            inside = 0 in indexes
+            for i in range(len(self)):
+                if i in indexes:
+                    if not inside:
+                        # Entering the crop area
+                        sect = line.extrapolate_intersection(
+                                Line(self[i-1], self[i]))
+                        points.append(sect)
+                        inside = True
+                    points.append(self[i])
+                else:
+                    if inside:
+                        # Exiting the crop area
+                        sect = line.extrapolate_intersection(
+                                Line(self[i-1], self[i]))
+                        points.append(sect)
+                        inside = False
+            return Polygon(points)
+
+        # TODO: non-convex
+
+
+class MultiPoint(Collection):
+    def __init__(self, items):
+        self.items = set()
+        for item in items:
+            if not isinstance(item, Point):
+                item = Point(item)
+            self.items.add(item)
+
+    def __eq__(self, other):
+        if not isinstance(other, MultiPoint):
+            return False
+        if len(self) != len(other):
+            return False
+        return self.items == other.items
+
+
+class MultiPolygon(Shape, Collection):
+    def __init__(self, items):
+        self.items = set()
+        for item in items:
+            if not isinstance(item, Polygon):
+                item = Polygon(item)
+            self.items.add(item)
+
+    def __eq__(self, other):
+        if not isinstance(other, MultiPolygon):
+            return False
+        if len(self) != len(other):
+            return False
+        return self.items == other.items
 
 
 # Class aliases
@@ -1208,6 +1391,7 @@ P = Point
 L = Line
 B = BoundingBox
 Pg = Polygon
+MPg = MultiPolygon
 
 
 def point_eq(a, b):

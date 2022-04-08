@@ -207,6 +207,25 @@ class TestLine(unittest.TestCase):
                 a.intersection_line(L((2, 1.5), (-2, 4.5))),
                 L((0, 3), (2, 1.5)))
 
+    def test_crop_line(self):
+        a = L((0, 0), (4, 4))
+        f = a.crop_line
+
+        b = L((0, -1), (1, -1))
+        self.assertIsNone(f(b))
+        b = -b
+        self.assertEqual(f(b), a)
+
+        b = L((1, -1), (-1, 1))
+        self.assertEqual(f(b), a)
+        b = -b
+        self.assertEqual(f(b), P(0, 0))
+
+        b = L((0, 2), (1, 2))
+        self.assertEqual(f(b), L((0, 0), (2, 2)))
+        b = -b
+        self.assertEqual(f(b), L((2, 2), (4, 4)))
+
 
 class TestBoundingBox(unittest.TestCase):
     def test_contains(self):
@@ -885,3 +904,69 @@ class TestPolygon(unittest.TestCase):
             (1, 1),
             ])
         self.assertTrue(f(b))
+
+    def test_intersection_line(self):
+        # Simple triangle
+        a = Pg([(1, 2), (3, 5), (4, 1), (1, 2)])
+        f = a.intersection
+
+        self.assertIsNone(f(L((0, 0), (1, 0))))
+        b = L((2, 2), (3, 2))
+        self.assertEqual(f(b), b)
+        b = L((1, 2), (3, 5))
+        self.assertEqual(f(b), b)
+
+        # Square
+        a = Pg([(0, 0), (0, 2), (2, 2), (2, 0), (0, 0)])
+        f = a.intersection
+        # - Edge to edge
+        b = L((0, 1), (2, 1))
+        self.assertEqual(f(b), b)
+        # - Vertex to vertex
+        b = L((0, 0), (2, 2))
+        self.assertEqual(f(b), b)
+        # - Vertex to edge
+        b = L((0, 0), (1, 2))
+        self.assertEqual(f(b), b)
+        # - Edge to internal
+        b = L((0, 1), (1, 1))
+        self.assertEqual(f(b), b)
+        # - From internal to external
+        b = L((1, 1), (1, 3))
+        self.assertEqual(f(b), L((1, 1), (1, 2)))
+        # - Edge to external
+        b = L((2, 1), (4, 4))
+        self.assertEqual(f(b), P(2, 1))
+        # - External to vertex
+        b = L((-2, -2), (0, 0))
+        self.assertEqual(f(b), P(0, 0))
+
+    def test_crop_line(self):
+        # Simple triangle
+        a = Pg([(1, 2), (3, 5), (4, 1), (1, 2)])
+        f = a.crop_line
+
+        self.assertIsNone(f(L((0, 0), (1, 0))))
+        self.assertEqual(f(L((0, 0), (0, 5))), a)
+        self.assertEqual(f(L((1, 2), (3, 5))), a)
+
+        # Right triangle
+        a = Pg([(0, 0), (0, 3), (3, 0), (0, 0)])
+        f = a.crop_line
+        # - Horizontal crop
+        exp = Pg([(0, 1), (0, 3), (2, 1), (0, 1)])
+        self.assertEqual(f(L((1, 1), (0, 1))), exp)
+
+        exp = Pg([(0, 0), (0, 1), (2, 1), (3, 0), (0, 0)])
+        self.assertEqual(f(L((0, 1), (1, 1))), exp)
+
+        # Square
+        a = Pg([(0, 0), (0, 2), (2, 2), (2, 0), (0, 0)])
+        f = a.crop_line
+        # - Crop between two vertices
+        exp = Pg([(0, 0), (2, 2), (2, 0), (0, 0)])
+        self.assertEqual(f(L((0, 0), (2, 2))), exp)
+
+        # - Crop from one vertex to an edge
+        exp = Pg([(0, 0), (0, 2), (1, 0), (0, 0)])
+        self.assertEqual(f(L((0, 2), (1, 0))), exp)
