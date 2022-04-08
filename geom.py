@@ -265,9 +265,9 @@ class Line(Geometry):
         """Return whether the given point lies within this line's boundary.
 
         Considering this line as a Euclidean line that extends infinitely in
-        both directions, return True if the point 'p' lies on the right-hand
-        side of that line, False if it lies of the left-hand side, or None if
-        it lies exactly on the line.
+        both directions, return True if 'point' lies on the right-hand side of
+        that line, False if it lies of the left-hand side, or None if it lies
+        exactly on the line.
 
         In this context, "right-hand" means from the point of view of an
         observer at point A, looking towards point B.
@@ -279,24 +279,17 @@ class Line(Geometry):
         if a == p or b == p:
             return None
 
-        # Shortcut case: line is horizontal or vertical
-        if self.is_horizontal:
-            if float_eq(p.y, a.y):
-                return None
-            return p.y < a.y if a.x < b.x else p.y > a.y
-
-        if self.is_vertical:
-            if float_eq(p.x, a.x):
-                return None
-            return p.x > a.x if a.y < b.y else p.x < a.x
-
-        # Find the point on the line that has the same x-value as P, and then
-        # see whether P lies above or below that point.
-        y = self.get_x_intercept(p.x)
-
-        if float_eq(p.y, y):
+        π = math.pi
+        angle_ab = self.angle
+        angle_ap = Line(a, p).angle
+        if float_eq(angle_ab, angle_ap):
             return None
-        return p.y < y if a.x < b.x else p.y > y
+        relative_angle = angle_ap - angle_ab
+        if relative_angle > π:
+            relative_angle -= 2 * π
+        elif relative_angle < -π:
+            relative_angle += 2 * π
+        return relative_angle < 0
 
     def extrapolate_intersection(self, other):
         """Return the point of intersection between two infinite lines.
@@ -780,29 +773,6 @@ class BoundingBox(Shape):
                 min(self.max_x, other.max_x),
                 min(self.max_y, other.max_y))
 
-    def intersection_polygon(self, other):
-        """Return the intersection of this box with a Polygon.
-
-        The result can be any of None, Point, Line, Polygon, or a Collection of
-        geometries.
-        """
-        if self.disjoint(other):
-            return None
-
-        if self.covers(other):
-            return other
-
-        if other.covers(self):
-            return self
-
-        result = other
-        for line in self.boundary:
-            crop = result.crop_line(line)
-            if crop is None:
-                return line.intersection(result)
-            result = crop
-        return result
-
     def intersection(self, other):
         if isinstance(other, Point):
             return other if self.intersects(other) else None
@@ -813,8 +783,7 @@ class BoundingBox(Shape):
         if isinstance(other, BoundingBox):
             return self.intersection_bbox(other)
 
-        if isinstance(other, Polygon):
-            return self.intersection_polygon(other)
+        return other.intersection(self)
 
     def as_tuple(self):
         return (self.min_x, self.min_y, self.max_x, self.max_y)
@@ -1279,6 +1248,29 @@ class Polygon(Shape):
 
         # TODO: non-convex
 
+    def intersection_bbox(self, other):
+        """Return the intersection of this Polygon with a BoundingBox.
+
+        The result can be any of None, Point, Line, Polygon, or a Collection of
+        geometries.
+        """
+        if self.disjoint(other):
+            return None
+
+        if self.covers(other):
+            return other
+
+        if other.covers(self):
+            return self
+
+        result = self
+        for line in other.boundary:
+            crop = result.crop_line(line)
+            if crop is None:
+                return line.intersection(result)
+            result = crop
+        return result
+
     def intersection(self, other):
         """Return the intersection of this Polygon with some other geometry.
         """
@@ -1290,6 +1282,9 @@ class Polygon(Shape):
 
         if isinstance(other, Line):
             return self.intersection_line(other)
+
+        if isinstance(other, BoundingBox):
+            return self.intersection_bbox(other)
 
         raise NotImplementedError()
 

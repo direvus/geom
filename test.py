@@ -24,21 +24,26 @@ class TestLine(unittest.TestCase):
             geom.in_bound((2, 1), (2, 1), (1, 1))
 
         # Horizontal
-        assert geom.in_bound((1, 2), (5, 2), (3, 2)) is None
-        assert geom.in_bound((1, 2), (5, 2), (3, 3)) is False
-        assert geom.in_bound((1, 2), (5, 2), (3, 1)) is True
+        line = L((1, 2), (5, 2))
+        self.assertIsNone(line.in_bound(P(3, 2)))
+        self.assertFalse(line.in_bound(P(3, 3)))
+        self.assertTrue(line.in_bound(P(3, 1)))
 
         # Vertical
-        assert geom.in_bound((-1, 2), (-1, 5), (-1, 4)) is None
-        assert geom.in_bound((-1, 2), (-1, 5), (3, 3)) is True
-        assert geom.in_bound((-1, 2), (-1, 5), (-5, 7)) is False
+        line = L((-1, 2), (-1, 5))
+        self.assertIsNone(line.in_bound(P(-1, 4)))
+        self.assertTrue(line.in_bound(P(3, 3)))
+        self.assertFalse(line.in_bound(P(-5, 7)))
 
         # Non-orthogonal
-        assert geom.in_bound((1, 2), (4, 1), (3, 2)) is False
-        assert geom.in_bound((1, 2), (4, 1), (-1, 2)) is True
-        assert geom.in_bound((1, 2), (4, 1), (3, 4/3)) is None
-        assert geom.in_bound((-1, 2), (-4, 1), (-3, 2)) is True
-        assert geom.in_bound((-1, 2), (-4, 1), (0, 2)) is False
+        line = L((1, 2), (4, 1))
+        self.assertFalse(line.in_bound(P(3, 2)))
+        self.assertTrue(line.in_bound(P(-1, 2)))
+        self.assertIsNone(line.in_bound(P(3, 4/3)))
+
+        line = L((-1, 2), (-4, 1))
+        self.assertTrue(line.in_bound(P(-3, 2)))
+        self.assertFalse(line.in_bound(P(0, 2)))
 
     def test_intersects_h(self):
         self.assertTrue(L((0, 0), (2, 2)).intersects_y(1))
