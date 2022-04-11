@@ -48,11 +48,51 @@ class Geometry():
 
 
 class Collection(Geometry):
-    def __init__(self, items):
-        self.items = set(tuple(items))
+    def __init__(self, items=None):
+        self.items = set()
+        if items:
+            self.items = set(tuple(items))
 
     def __len__(self):
         return len(self.items)
+
+    def __eq__(self, other):
+        if not isinstance(other, Collection):
+            return False
+        if len(self) != len(other):
+            return False
+        return self.items == other.items
+
+    def __iter__(self):
+        return iter(self.items)
+
+    def __str__(self):
+        return ', '.join(map(str, tuple(self.items)))
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}({self})'
+
+    @staticmethod
+    def make(items):
+        """Produce a Collection instance according to the types of the inputs.
+
+        If all the inputs are Points, return a MultiPoint.  If all the inputs
+        are Lines, return a MultiLine, and so on.
+
+        If there are no inputs, or the inputs contain a mixture of types,
+        return a generic Collection.
+        """
+        cls = Collection
+        if not items:
+            return cls()
+        if all([isinstance(x, Polygon) for x in items]):
+            cls = MultiPolygon
+        elif all([isinstance(x, Line) for x in items]):
+            cls = MultiLine
+        elif all([isinstance(x, Point) for x in items]):
+            cls = MultiPoint
+
+        return cls(items)
 
 
 class Point(Geometry):
@@ -105,11 +145,31 @@ class Point(Geometry):
             return self.y
         raise KeyError()
 
+    def as_tuple(self):
+        return (self.x, self.y)
+
     def intersection(self, other):
         if isinstance(other, Point):
             return self if self == other else None
 
         return self if other.intersects(self) else None
+
+    def disjoint(self, other):
+        """Return whether the point is spatially disjoint with some geometry.
+
+        This is True if and only if the point does not lie within any interior
+        or boundary of the other geometry.
+        """
+        if isinstance(other, Point):
+            return self != other
+
+        return not other.intersects(self)
+
+    def distance(self, other):
+        """Return the distance between two points."""
+        if self == other:
+            return 0
+        return math.dist(self.as_tuple(), other.as_tuple())
 
     def move(self, x=0, y=0):
         """Return a new Point with position relative to this one."""
@@ -190,6 +250,11 @@ class Line(Geometry):
         return math.atan2(self.dy, self.dx)
 
     @property
+    def points(self):
+        """Return an iterable of this line's points."""
+        return (self.a, self.b)
+
+    @property
     def bbox(self):
         """Return this line's bounding box."""
         return BoundingBox(
@@ -198,6 +263,11 @@ class Line(Geometry):
                 max(self.a.x, self.b.x),
                 max(self.a.y, self.b.y),
                 )
+
+    @property
+    def length(self):
+        """Return the Euclidean distance between this line's endpoints."""
+        return math.dist(self.a.as_tuple(), self.b.as_tuple())
 
     def get_x_intercept(self, x):
         """Return the y-value where the line intersects a vertical.
@@ -1246,7 +1316,61 @@ class Polygon(Shape):
                 result = crop
             return result
 
-        # TODO: non-convex
+        # Non-convex, yuck.  Surely there is a more elegant way to do this, but
+        # for now this is all I've got ...
+        lines = [x for x in self.lines if x.intersects(other)]
+        if not lines:
+            return None
+
+        intersections = {x: other.intersection(x) for x in lines}
+
+        def sortkey(line):
+            t = intersections[line]
+            if isinstance(t, Line):
+                return min(other.a.distance(t.a), other.a.distance(t.b))
+            return other.a.distance(t)
+        lines.sort(key=sortkey)
+        remain = other
+        result = set()
+        for line in lines:
+            if line.in_bound(other.a):
+                result.add(remain.crop_line(line))
+                remain = remain.crop_line(-line)
+            else:
+                remain = remain.crop_line(line)
+
+        # Filter out points that are covered by lines.
+        def f(x):
+            return not isinstance(x, Point) or all(
+                    [x.disjoint(y) for y in result if x != y])
+        result = list(filter(f, result))
+
+        # Merge adjacent lines together
+        merged = []
+        angle = other
+        prev = None
+        for item in result:
+            if not isinstance(item, Line):
+                merged.append(item)
+                continue
+            if prev and item.intersects(prev):
+                print(item)
+                assert isinstance(item.intersection(prev), Point)
+                # Remove the mutual point and make a new line
+                points = set(line.points + prev.points)
+                merge = Line(*points)
+                if merge.angle != angle:
+                    merge = -merge
+                merged.append(merge)
+                prev = merge
+            else:
+                merged.append(item)
+                prev = item
+
+        result = merged
+        if len(result) == 1:
+            return result[0]
+        return Collection.make(result)
 
     def intersection_bbox(self, other):
         """Return the intersection of this Polygon with a BoundingBox.
@@ -1349,36 +1473,27 @@ class Polygon(Shape):
         # TODO: non-convex
 
 
-class MultiPoint(Collection):
+class HomogeneousCollection(Collection):
+    item_type = None
+
     def __init__(self, items):
         self.items = set()
         for item in items:
-            if not isinstance(item, Point):
-                item = Point(item)
+            if not isinstance(item, self.item_type):
+                item = self.item_type(item)
             self.items.add(item)
 
-    def __eq__(self, other):
-        if not isinstance(other, MultiPoint):
-            return False
-        if len(self) != len(other):
-            return False
-        return self.items == other.items
+
+class MultiPoint(HomogeneousCollection):
+    item_type = Point
 
 
-class MultiPolygon(Shape, Collection):
-    def __init__(self, items):
-        self.items = set()
-        for item in items:
-            if not isinstance(item, Polygon):
-                item = Polygon(item)
-            self.items.add(item)
+class MultiLine(HomogeneousCollection):
+    item_type = Line
 
-    def __eq__(self, other):
-        if not isinstance(other, MultiPolygon):
-            return False
-        if len(self) != len(other):
-            return False
-        return self.items == other.items
+
+class MultiPolygon(Shape, HomogeneousCollection):
+    item_type = Polygon
 
 
 # Class aliases
@@ -1386,6 +1501,9 @@ P = Point
 L = Line
 B = BoundingBox
 Pg = Polygon
+Co = Collection
+MP = MultiPoint
+ML = MultiLine
 MPg = MultiPolygon
 
 

@@ -1,7 +1,7 @@
 import unittest
 
 import geom
-from geom import P, L, B, Pg
+from geom import P, L, B, Pg, Co, MP, ML, MPg
 
 
 class TestPoint(unittest.TestCase):
@@ -945,6 +945,35 @@ class TestPolygon(unittest.TestCase):
         # - External to vertex
         b = L((-2, -2), (0, 0))
         self.assertEqual(f(b), P(0, 0))
+
+        # Non-convex
+        a = Pg([
+                (1, 0), (1, 4), (2, 4), (2, 1), (4, 1),
+                (4, 4), (5, 4), (5, 0), (1, 0)])
+        b = L((0, 2), (6, 2))
+        f = a.intersection
+        self.assertIsNone(f(L((0, -1), (2, -2))))
+        self.assertEqual(f(b), ML((L((1, 2), (2, 2)), L((4, 2), (5, 2)))))
+
+        # Vertex contact
+        self.assertEqual(f(L((0, 3), (2, 5))), P(1, 4))
+
+        # Single-line intersections
+        self.assertEqual(f(L((1, -1), (1, 7))), L((1, 0), (1, 4)))
+        self.assertEqual(f(L((1, 2), (1, 3))), L((1, 2), (1, 3)))
+        self.assertEqual(f(L((1, 2), (1, 3))), L((1, 2), (1, 3)))
+        self.assertEqual(f(L((2, 1), (4, 1))), L((2, 1), (4, 1)))
+        self.assertEqual(f(L((2, 4), (1, 3))), L((2, 4), (1, 3)))
+
+        # Multiple line intersections, passing through vertices
+        b = L((0, -1), (6, 5))
+        exp = ML((L((1, 0), (2, 1)), L((4, 3), (5, 4))))
+        self.assertEqual(f(b), exp)
+
+        # Mixed lines and points
+        b = L((0, 5), (6, 2))
+        exp = Co((P(2, 4), L((4, 3), (5, 2.5))))
+        self.assertEqual(f(b), exp)
 
     def test_crop_line(self):
         # Simple triangle
