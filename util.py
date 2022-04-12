@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # coding: utf-8
+import math
 from decimal import Decimal
 
 
-EPSILON = 0.000000001
+ABS_TOL = 1e-8
 
 
 def flatten_coords(*args):
@@ -58,35 +59,35 @@ def flatten_coords(*args):
     return result
 
 
-def float_eq(a, b):
+def float_close(a, b):
     """Return whether two floating point values are "nearly" equal.
 
-    Two floats are considered equal if the difference between them is less than
-    the EPSILON value.
+    This comparison is carried out using the Python standard library
+    math.isclose() function, with the default relative tolerance, and an
+    absolute tolerance from a module-level constant in this module.
     """
-    return abs(float(a) - float(b)) < EPSILON
+    return math.isclose(a, b, abs_tol=ABS_TOL)
 
 
-def float_ne(a, b):
+def float_not_close(a, b):
     """Return whether two floating point values are not nearly equal."""
-    return not float_eq(a, b)
+    return not float_close(a, b)
+
 
 def float_gt(a, b):
-    """Return whether one floating point value is greater than another.
+    """Return whether one float is significantly greater than another.
 
-    'a' is considered greater than 'b' if it exceeds 'b' by at least the
-    EPSILON value.
+    Return True if 'a' is greater than 'b' and also not nearly equal to 'b'.
     """
-    return float(a) > float(b) + EPSILON
+    return float(a) > float(b) and not float_close(a, b)
 
 
 def float_lt(a, b):
-    """Return whether one floating point value is less than another.
+    """Return whether one float is significantly less than another.
 
-    'a' is considered less than 'b' if it falls below 'b' by at least the
-    EPSILON value.
+    Return True if 'a' is less than 'b' and also not nearly equal to 'b'.
     """
-    return float(a) < float(b) - EPSILON
+    return float(a) < float(b) and not float_close(a, b)
 
 
 def get_bbox(*points):
@@ -138,10 +139,10 @@ def in_bbox(box, point, exact=True):
             float_gt(point[1], box[3])):
         return False
 
-    if (float_eq(point[0], box[0]) or
-            float_eq(point[0], box[2]) or
-            float_eq(point[1], box[1]) or
-            float_eq(point[1], box[3])):
+    if (float_close(point[0], box[0]) or
+            float_close(point[0], box[2]) or
+            float_close(point[1], box[1]) or
+            float_close(point[1], box[3])):
         return exact
 
     return True

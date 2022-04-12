@@ -2,7 +2,7 @@
 # coding: utf-8
 import math
 
-from util import float_eq, float_ne, float_gt, float_lt
+from util import float_close, float_gt, float_lt
 
 
 class Geometry():
@@ -120,18 +120,24 @@ class Point(Geometry):
                     f"Invalid number of arguments for Point: {len(args)}.")
 
     def __eq__(self, other):
-        """Return whether this point is "nearly" equal to another.
-
-        Two points are considered equal if the differences between their
-        respective ordinates are both less than the EPSILON value.
-        """
+        """Return whether this point is exactly equal to another."""
         if other is None:
             return False
         if isinstance(other, (Line, Shape)):
             return False
         if not isinstance(other, Point):
             other = Point(other)
-        return float_eq(self.x, other.x) and float_eq(self.y, other.y)
+        return self.as_tuple() == other.as_tuple()
+
+    def nearly_equal(self, other):
+        """Return whether this point is nearly equal to another."""
+        if other is None:
+            return False
+        if isinstance(other, (Line, Shape)):
+            return False
+        if not isinstance(other, Point):
+            other = Point(other)
+        return float_close(self.x, other.x) and float_close(self.y, other.y)
 
     def __len__(self):
         return 2
@@ -200,8 +206,8 @@ class Line(Geometry):
         self.a = Point(a)
         self.b = Point(b)
 
-        if a == b:
-            raise ValueError("Invalid line: the two points are equal.")
+        if self.a.nearly_equal(b):
+            raise ValueError("Invalid line: the two points are too close.")
 
     @property
     def is_horizontal(self):
@@ -352,7 +358,7 @@ class Line(Geometry):
         π = math.pi
         angle_ab = self.angle
         angle_ap = Line(a, p).angle
-        if float_eq(angle_ab, angle_ap):
+        if float_close(angle_ab, angle_ap):
             return None
         relative_angle = angle_ap - angle_ab
         if relative_angle > π:
@@ -422,18 +428,18 @@ class Line(Geometry):
 
         if self.is_vertical:
             return (
-                    float_eq(point.x, self.a.x) and not (
+                    float_close(point.x, self.a.x) and not (
                         float_lt(point.y, bbox.min_y) or
                         float_gt(point.y, bbox.max_y)))
 
         if self.is_horizontal:
             return (
-                    float_eq(point.y, self.a.y) and not (
+                    float_close(point.y, self.a.y) and not (
                         float_lt(point.x, bbox.min_x) or
                         float_gt(point.x, bbox.max_x)))
 
         y = self.get_x_intercept(point.x)
-        return float_eq(y, point.y)
+        return float_close(y, point.y)
 
     def intersects_line(self, other):
         """Return whether two bounded lines intersect each other.
@@ -478,12 +484,12 @@ class Line(Geometry):
         if self.parallel(other):
             if self.is_vertical:
                 x = self.a.x
-                if not float_eq(x, other.a.x):
+                if not float_close(x, other.a.x):
                     return None
                 # Lines share the same vertical; overlap?
                 y1 = max(min(self.a.y, self.b.y), min(other.a.y, other.b.y))
                 y2 = min(max(self.a.y, self.b.y), max(other.a.y, other.b.y))
-                if float_eq(y1, y2):
+                if float_close(y1, y2):
                     return Point(x, y1)
                 if float_lt(y1, y2):
                     a = x, y1
@@ -493,13 +499,14 @@ class Line(Geometry):
                     return Line(a, b)
                 return None
 
-            if float_ne(self.get_x_intercept(0), other.get_x_intercept(0)):
+            if not float_close(
+                    self.get_x_intercept(0), other.get_x_intercept(0)):
                 return None
 
             # Lines share the same Euclidean, do they overlap?
             x1 = max(min(self.a.x, self.b.x), min(other.a.x, other.b.x))
             x2 = min(max(self.a.x, self.b.x), max(other.a.x, other.b.x))
-            if float_eq(x1, x2):
+            if float_close(x1, x2):
                 return Point(x1, self.get_x_intercept(x1))
             if float_lt(x1, x2):
                 a = x1, self.get_x_intercept(x1)
@@ -580,7 +587,7 @@ class Line(Geometry):
         return Line(self.a.move(x, y), self.b.move(x, y))
 
     def __eq__(self, other):
-        """Return whether two lines are equal.
+        """Return whether two lines are exactly equal.
 
         Two lines are considered equal if their endpoints are equal.  They do
         not need to have the same direction.
@@ -588,6 +595,22 @@ class Line(Geometry):
         if not isinstance(other, Line):
             return False
         return (self.a, self.b) in {(other.a, other.b), (other.b, other.a)}
+
+    def nearly_equal(self, other):
+        """Return whether two lines are nearly equal.
+
+        Two lines are considered nearly equal if their endpoints are nearly
+        equal.  They do not need to have the same direction.
+        """
+        if not isinstance(other, Line):
+            return False
+        return ((
+                    self.a.nearly_equal(other.a) and
+                    self.b.nearly_equal(other.b)
+                ) or (
+                    self.a.nearly_equal(other.b) and
+                    self.b.nearly_equal(other.a)
+                ))
 
     def __neg__(self):
         """Return the negation of the line.
@@ -751,11 +774,11 @@ class BoundingBox(Shape):
                 return False
             return not (
                     (other.is_horizontal and (
-                        float_eq(other.a.y, self.min_y) or
-                        float_eq(other.a.y, self.max_y))) or
+                        float_close(other.a.y, self.min_y) or
+                        float_close(other.a.y, self.max_y))) or
                     (other.is_vertical and (
-                        float_eq(other.a.x, self.min_x) or
-                        float_eq(other.a.x, self.max_x))))
+                        float_close(other.a.x, self.min_x) or
+                        float_close(other.a.x, self.max_x))))
 
         if isinstance(other, BoundingBox):
             return not (
@@ -822,7 +845,7 @@ class BoundingBox(Shape):
                     a = sect
                 if boundary.in_bound(b) is False:
                     b = sect
-                if a == b:
+                if a.nearly_equal(b):
                     return a
         return Line(a, b)
 
@@ -831,7 +854,7 @@ class BoundingBox(Shape):
 
         The result can be None, a Point, a Line or a BoundingBox.
         """
-        if self == other:
+        if self == other or self.nearly_equal(other):
             return self
 
         if self.disjoint(other):
@@ -862,6 +885,12 @@ class BoundingBox(Shape):
         if not isinstance(other, BoundingBox):
             return False
         return self.as_tuple() == other.as_tuple()
+
+    def nearly_equal(self, other):
+        if not isinstance(other, BoundingBox):
+            return False
+        z = zip(self.as_tuple(), other.as_tuple())
+        return all([float_close(a, b) for a, b in z])
 
     def __str__(self):
         return f"{self.min_x},{self.min_y},{self.max_x},{self.max_y}"
@@ -945,7 +974,7 @@ class Polygon(Shape):
         raise TypeError()
 
     def __contains__(self, point):
-        """Return whether 'point' is equal to any of the polygon's vertices.
+        """Return whether 'point' is nearly equal to any of the polygon's vertices.
 
         Despite the name of the Python magic method, this doesn't test
         "containment" in the geometric sense, but rather it tests membership.
@@ -953,21 +982,24 @@ class Polygon(Shape):
         contains()
         """
         p = Point(point)
-        for v in self.points:
-            if v == p:
-                return True
-        return False
+        return any([p.nearly_equal(x) for x in self.points])
 
     def __str__(self):
         return " → ".join(map(str, self.points))
 
     def __eq__(self, other):
+        """Return whether this polygon is equal to another.
+
+        The polygons are considered equal if all their vertices are exactly
+        equal, and appear in the same order.  The two polygons do not need to
+        begin at the same point.
+        """
         if not isinstance(other, Polygon):
             return False
         if len(self) != len(other):
             return False
         # TODO: equivalent polygons with different starting points
-        return self.points == self.points
+        return self.points == other.points
 
     @property
     def bbox(self):

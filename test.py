@@ -202,9 +202,8 @@ class TestLine(unittest.TestCase):
         self.assertEqual(
                 a.intersection_line(L((4, 0), (0, 3))),
                 L((0, 3), (4, 0)))
-        self.assertEqual(
-                a.intersection_line(L((0, 0), (5, 5))),
-                P(12/7, 12/7))
+        self.assertTrue(a.intersection_line(L((0, 0), (5, 5))).nearly_equal(
+                P(12/7, 12/7)))
         self.assertEqual(
                 a.intersection_line(L((4, 0), (-2, 1))),
                 P(4, 0))
