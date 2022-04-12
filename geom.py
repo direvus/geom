@@ -6,6 +6,8 @@ from util import float_close, float_gt, float_lt
 
 
 class Geometry():
+    __slots__ = []
+
     def disjoint(self, other):
         """Return whether two geometries are spatially disjoint.
 
@@ -48,6 +50,8 @@ class Geometry():
 
 
 class Collection(Geometry):
+    __slots__ = ['items']
+
     def __init__(self, items=None):
         self.items = set()
         if items:
@@ -96,6 +100,8 @@ class Collection(Geometry):
 
 
 class Point(Geometry):
+    __slots__ = ['x', 'y']
+
     def __init__(self, *args):
         if len(args) == 1:
             value = args[0]
@@ -202,6 +208,8 @@ class Line(Geometry):
     along the straight line which connects them.  It also has a direction -- it
     begins at point A and ends at point B.
     """
+    __slots__ = ['a', 'b']
+
     def __init__(self, a, b):
         self.a = Point(a)
         self.b = Point(b)
@@ -559,8 +567,8 @@ class Line(Geometry):
 
         Consider the 'other' line as an infinite Euclidean extending in both
         directions, and return a geometry that represents the part of this line
-        that falls on the right-hand side of the 'other' line.  The result can
-        be None, a Point, or a Line.
+        that does not fall on the left-hand side of the 'other' line.  The
+        result can be None, a Point, or a Line.
         """
         bound_a = other.in_bound(self.a)
         bound_b = other.in_bound(self.b)
@@ -638,6 +646,8 @@ class Shape(Geometry):
     - exterior and
     - boundary.
     """
+    __slots__ = []
+
     @property
     def bbox(self):
         raise NotImplementedError()
@@ -667,6 +677,8 @@ class Shape(Geometry):
 
 
 class BoundingBox(Shape):
+    __slots__ = ['min_x', 'min_y', 'max_x', 'max_y']
+
     def __init__(self, min_x, min_y, max_x, max_y):
         self.min_x = min_x
         self.min_y = min_y
@@ -910,6 +922,8 @@ class Polygon(Shape):
     redundant points, and close the polygon if it is not already closed (i.e.
     ensure that the last point in the polygon is the same as the first point).
     """
+    __slots__ = ['points']
+
     def __init__(self, value):
         if isinstance(value, Polygon):
             self.points = value.points
@@ -1394,7 +1408,6 @@ class Polygon(Shape):
                 merged.append(item)
                 continue
             if prev and item.intersects(prev):
-                print(item)
                 assert isinstance(item.intersection(prev), Point)
                 # Remove the mutual point and make a new line
                 points = set(line.points + prev.points)
@@ -1432,6 +1445,8 @@ class Polygon(Shape):
             crop = result.crop_line(line)
             if crop is None:
                 return line.intersection(result)
+            if isinstance(crop, Point):
+                return crop
             result = crop
         return result
 
@@ -1462,26 +1477,38 @@ class Polygon(Shape):
 
         Consider the line as an infinite Euclidean extending in both
         directions, and return a geometry that encloses the part of the
-        original polygon's interior that falls on the right-hand side of the
-        line.  The result can be None, a Polygon, or a MultiPolygon.
+        original polygon's interior that does not fall on the left-hand side of
+        the line.  The result can be None, a Point, a Line, a Polygon, or any
+        Collection of Points, Lines and/or Polygons.
         """
-        found = False
-        indexes = set()
+        indexes = []
         exact = []
-        for i in range(len(self)):
+        for i in range(len(self) - 1):
             p = self[i]
             inbound = line.in_bound(p)
-            if not found and inbound is True:
-                found = True
             if inbound is not False:
-                indexes.add(i)
+                indexes.append(i)
             if inbound is None:
                 exact.append(i)
-        if not found:
+        if not indexes:
             return None
 
-        if len(indexes) == len(self):
+        if len(indexes) == len(self) - 1:
             return self
+
+        if exact == indexes:
+            assert 0 < len(exact) < 3
+
+            if len(exact) == 1:
+                return self[exact[0]]
+
+            if len(exact) == 2:
+                i, j = exact
+                diff = abs(j - i)
+                if diff == 1:
+                    return Line(self[i], self[j])
+                if diff == len(self) - 2:
+                    return Line(self[j], self[i])
 
         if self.is_convex:
             if len(exact) == 2:
@@ -1493,7 +1520,7 @@ class Polygon(Shape):
             points = []
             inside = 0 in indexes
             for i in range(len(self)):
-                if i in indexes:
+                if i in indexes or (i == len(self) - 1 and 0 in indexes):
                     if not inside:
                         # Entering the crop area
                         sect = line.extrapolate_intersection(
@@ -1514,6 +1541,7 @@ class Polygon(Shape):
 
 
 class HomogeneousCollection(Collection):
+    __slots__ = []
     item_type = None
 
     def __init__(self, items):
@@ -1525,14 +1553,17 @@ class HomogeneousCollection(Collection):
 
 
 class MultiPoint(HomogeneousCollection):
+    __slots__ = []
     item_type = Point
 
 
 class MultiLine(HomogeneousCollection):
+    __slots__ = []
     item_type = Line
 
 
 class MultiPolygon(Shape, HomogeneousCollection):
+    __slots__ = []
     item_type = Polygon
 
 

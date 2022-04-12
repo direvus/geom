@@ -1008,6 +1008,12 @@ class TestPolygon(unittest.TestCase):
         self.assertEqual(f(L((0, 0), (0, 5))), a)
         self.assertEqual(f(L((1, 2), (3, 5))), a)
 
+        b = L((0, 3), (2, 1))
+        self.assertEqual(f(b), P(1, 2))
+
+        b = L((3, 5), (1, 2))
+        self.assertEqual(f(b), b)
+
         # Right triangle
         a = Pg([(0, 0), (0, 3), (3, 0), (0, 0)])
         f = a.crop_line
