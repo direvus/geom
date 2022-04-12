@@ -443,11 +443,11 @@ class TestPolygon(unittest.TestCase):
 
     def test_is_convex(self):
         # simple triangle
-        poly = [(1, 2), (3, 5), (4, 1), (1, 2)]
-        assert geom.is_convex(poly) is True
+        poly = Pg([(1, 2), (3, 5), (4, 1), (1, 2)])
+        self.assertTrue(poly.is_convex)
 
         # octagon centred on (0, 0)
-        poly = [
+        poly = Pg([
                 (1, 2),
                 (2, 1),
                 (2, -1),
@@ -457,11 +457,11 @@ class TestPolygon(unittest.TestCase):
                 (-2, 1),
                 (-1, 2),
                 (1, 2),
-                ]
-        assert geom.is_convex(poly) is True
+                ])
+        self.assertTrue(poly.is_convex)
 
         # definitely non-convex
-        poly = [
+        poly = Pg([
                 (1, 1),
                 (1, 6),
                 (2, 5),
@@ -471,8 +471,8 @@ class TestPolygon(unittest.TestCase):
                 (5, 4),
                 (4, 0),
                 (1, 1),
-                ]
-        assert geom.is_convex(poly) is False
+                ])
+        self.assertFalse(poly.is_convex)
 
     def test_divide_polygon(self):
         poly = [
