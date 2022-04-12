@@ -998,7 +998,15 @@ class Polygon(Shape):
             return False
         if len(self) != len(other):
             return False
-        # TODO: equivalent polygons with different starting points
+
+        try:
+            i = other.points.index(self[0])
+        except ValueError:
+            return False
+        if i != 0:
+            # Rearrange 'other' to start at the same point as 'self'.
+            other = Polygon(other[i:] + other[1:i])
+
         return self.points == other.points
 
     @property

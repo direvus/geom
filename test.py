@@ -416,6 +416,31 @@ class TestPolygon(unittest.TestCase):
         poly = Pg([(1, 2), (3, 5), (4, 1), (1, 2)])
         self.assertEqual(len(poly), 4)
 
+    def test_eq(self):
+        a = Pg([(1, 2), (3, 5), (4, 1), (1, 2)])
+        b = Pg([(1, 2), (3, 5), (4, 1), (1, 2)])
+        self.assertEqual(a, b)
+
+        b = Pg([(1, 2), (3.1, 5), (4, 1), (1, 2)])
+        self.assertNotEqual(a, b)
+
+        b = Pg([
+                (1, 1),
+                (1, 6),
+                (2, 5),
+                (2, 2),
+                (4, 2),
+                (3, 4),
+                (5, 4),
+                (4, 0),
+                (1, 1),
+                ])
+        self.assertNotEqual(a, b)
+
+        # Same ring of points, but starting from a different one.
+        b = Pg([(4, 1), (1, 2), (3, 5), (4, 1)])
+        self.assertEqual(a, b)
+
     def test_is_convex(self):
         # simple triangle
         poly = [(1, 2), (3, 5), (4, 1), (1, 2)]
