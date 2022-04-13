@@ -391,7 +391,7 @@ class TestBoundingBox(unittest.TestCase):
 
         # External, shared boundary
         poly = Pg([(0, 0), (-4, 0), (0, 5), (0, 0)])
-        self.assertEqual(f(poly), L((0, 0), (0, 5)))
+        self.assertTrue(f(poly).coterminous(L((0, 0), (0, 5))))
 
         # Point contact
         poly = Pg([(3, 9), (7, 9), (5, 5), (3, 9)])
@@ -1012,7 +1012,7 @@ class TestPolygon(unittest.TestCase):
         self.assertEqual(f(b), P(1, 2))
 
         b = L((3, 5), (1, 2))
-        self.assertEqual(f(b), b)
+        self.assertTrue(b.coterminous(f(b)))
 
         # Right triangle
         a = Pg([(0, 0), (0, 3), (3, 0), (0, 0)])
@@ -1034,3 +1034,14 @@ class TestPolygon(unittest.TestCase):
         # - Crop from one vertex to an edge
         exp = Pg([(0, 0), (0, 2), (1, 0), (0, 0)])
         self.assertEqual(f(L((0, 2), (1, 0))), exp)
+
+        # Non-convex
+        a = Pg([
+                (1, 0), (1, 4), (2, 4), (2, 1), (4, 1),
+                (4, 4), (5, 4), (5, 0), (1, 0)])
+        f = a.crop_line
+        b = L((0, 2), (6, 2))
+        exp = Pg([
+                (1, 0), (1, 2), (2, 2), (2, 1), (4, 1),
+                (4, 2), (5, 2), (5, 0), (1, 0)])
+        self.assertEqual(f(b), exp)

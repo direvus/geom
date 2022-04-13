@@ -597,12 +597,12 @@ class Line(Geometry):
     def __eq__(self, other):
         """Return whether two lines are exactly equal.
 
-        Two lines are considered equal if their endpoints are equal.  They do
-        not need to have the same direction.
+        Two lines are considered equal if their endpoints and direction are
+        equal.
         """
         if not isinstance(other, Line):
             return False
-        return (self.a, self.b) in {(other.a, other.b), (other.b, other.a)}
+        return (self.a, self.b) == (other.a, other.b)
 
     def nearly_equal(self, other):
         """Return whether two lines are nearly equal.
@@ -619,6 +619,14 @@ class Line(Geometry):
                     self.a.nearly_equal(other.b) and
                     self.b.nearly_equal(other.a)
                 ))
+
+    def coterminous(self, other):
+        """Return whether the two lines have the same endpoints.
+
+        Two lines are coterminous if they share the same set of endpoints.  The
+        lines need not have the same direction.
+        """
+        return {self.a, self.b} == {other.a, other.b}
 
     def __neg__(self):
         """Return the negation of the line.
@@ -1537,7 +1545,34 @@ class Polygon(Shape):
                         inside = False
             return Polygon(points)
 
-        # TODO: non-convex
+        # Non-convex
+        points = []
+        prev = None
+        prev_bound = None
+        for i, p in enumerate(self.points):
+            bound = line.in_bound(p)
+            if (i == 0 or prev_bound is not False) and bound is not False:
+                points.append(p)
+
+            elif bound is False and prev_bound is True:
+                p = line.extrapolate_intersection(Line(prev, p))
+                bound = None
+                points.append(p)
+
+            elif bound is True and prev_bound is False:
+                split = line.extrapolate_intersection(Line(prev, p))
+                points.extend((split, p))
+
+            prev = p
+            prev_bound = bound
+
+        if not points:
+            return None
+        if len(points) == 1:
+            return points[0]
+        if len(points) == 2:
+            return Line(*points)
+        return Polygon(points)
 
 
 class HomogeneousCollection(Collection):
