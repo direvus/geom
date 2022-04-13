@@ -950,7 +950,7 @@ class Polygon(Shape):
 
         # Filter out redundant points.
         length = len(points)
-        self.points = []
+        boundary = []
         for i, p in enumerate(points):
             if i > 0 and i < length - 1:
                 # If the boundary doesn't change angle after this point,
@@ -960,14 +960,16 @@ class Polygon(Shape):
                 b = Line(p, points[i+1])
                 if a.angle == b.angle:
                     continue
-            self.points.append(p)
+            boundary.append(p)
 
         # If the polygon isn't closed, close it now.
-        if self.points[0] != self.points[-1]:
-            self.points.append(self.points[0])
+        if boundary[0] != boundary[-1]:
+            boundary.append(boundary[0])
 
-        if len(self.points) < 4:
+        if len(boundary) < 4:
             raise ValueError("Not enough valid points for a closed polygon.")
+
+        self.points = tuple(boundary)
 
         # Disallow backtracking along the same line
         lines = self.lines
@@ -1021,15 +1023,33 @@ class Polygon(Shape):
         if len(self) != len(other):
             return False
 
-        try:
-            i = other.points.index(self[0])
-        except ValueError:
-            return False
-        if i != 0:
-            # Rearrange 'other' to start at the same point as 'self'.
-            other = Polygon(other[i:] + other[1:i])
+        return self.points_standard == other.points_standard
 
-        return self.points == other.points
+    def __hash__(self):
+        return hash(self.points_standard)
+
+    @property
+    def points_standard(self):
+        """Return this polygon's points with a standardised starting point.
+
+        The result is a linear ring of the points in this polygon, with the
+        starting point adjusted to be the point with the lowest 'x' value.  If
+        multiple points tie for the lowest 'x' value, the lowest 'y' value
+        among them is the start point.
+
+        The main purpose of this property is to enable "apples to apples"
+        comparisons between two polygons, and also to make Polygon hashable.
+        """
+        start = 0
+        min_x = None
+        min_y = None
+        for i, p in enumerate(self.points):
+            if min_x is None or p.x < min_x or (p.x == min_x and p.y < min_y):
+                start = i
+                min_x, min_y = p.x, p.y
+        if start == 0:
+            return self.points
+        return self.points[start:] + self.points[1:start+1]
 
     @property
     def bbox(self):
