@@ -197,7 +197,7 @@ class Point(Geometry):
         return f"Point({self.x},{self.y})"
 
     def __hash__(self):
-        return hash((self.x, self.y))
+        return hash(('Point', self.x, self.y))
 
 
 class Line(Geometry):
@@ -643,7 +643,7 @@ class Line(Geometry):
         return f"Line({self})"
 
     def __hash__(self):
-        return hash((self.a, self.b))
+        return hash(('Line', self.a, self.b))
 
 
 class Shape(Geometry):
@@ -906,6 +906,9 @@ class BoundingBox(Shape):
             return False
         return self.as_tuple() == other.as_tuple()
 
+    def __hash__(self):
+        return hash(tuple('BoundingBox') + self.as_tuple())
+
     def nearly_equal(self, other):
         if not isinstance(other, BoundingBox):
             return False
@@ -1026,7 +1029,7 @@ class Polygon(Shape):
         return self.points_standard == other.points_standard
 
     def __hash__(self):
-        return hash(self.points_standard)
+        return hash(tuple('Polygon') + self.points_standard)
 
     @property
     def points_standard(self):
