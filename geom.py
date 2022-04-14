@@ -2,7 +2,7 @@
 # coding: utf-8
 import math
 
-from util import float_close, float_gt, float_lt
+from util import UniqueList, float_close, float_gt, float_lt
 
 
 class Geometry():
@@ -966,7 +966,7 @@ class Polygon(Shape):
             boundary.append(p)
 
         # If the polygon isn't closed, close it now.
-        if boundary[0] != boundary[-1]:
+        if boundary and boundary[0] != boundary[-1]:
             boundary.append(boundary[0])
 
         if len(boundary) < 4:
@@ -1569,33 +1569,61 @@ class Polygon(Shape):
             return Polygon(points)
 
         # Non-convex
-        points = []
+        shapes = []
+        points = UniqueList()
         prev = None
-        prev_bound = None
+        initial_bound = line.in_bound(self[0])
+        prev_bound = initial_bound
         for i, p in enumerate(self.points):
             bound = line.in_bound(p)
-            if (i == 0 or prev_bound is not False) and bound is not False:
+            if bound is None or (
+                    (i == 0 or prev_bound is not False) and
+                    bound is not False):
                 points.append(p)
 
             elif bound is False and prev_bound is True:
                 p = line.extrapolate_intersection(Line(prev, p))
-                bound = None
                 points.append(p)
 
             elif bound is True and prev_bound is False:
                 split = line.extrapolate_intersection(Line(prev, p))
                 points.extend((split, p))
 
+            elif points:
+                # If there is a concavity here, break the collected points into
+                # a separate shape group.
+                a = self[i-2] if i > 1 else self[-2]
+                b = self[i-1]
+                if Line(a, b).in_bound(p) is False:
+                    shapes.append(points)
+                    points = UniqueList()
+
             prev = p
             prev_bound = bound
+        if points:
+            # If we started inside the crop line, merge the final group of
+            # collected points with the initial ones.
+            if shapes and initial_bound is not False:
+                shapes[0].extend(points)
+            else:
+                shapes.append(points)
 
-        if not points:
+        if not shapes:
             return None
-        if len(points) == 1:
-            return points[0]
-        if len(points) == 2:
-            return Line(*points)
-        return Polygon(points)
+
+        result = []
+        for points in shapes:
+            if len(points) == 1:
+                result.append(points[0])
+            elif len(points) == 2:
+                result.append(Line(*points))
+            else:
+                result.append(Polygon(points))
+
+        if len(result) == 1:
+            return result[0]
+
+        return union(result)
 
 
 class HomogeneousCollection(Collection):
@@ -1764,3 +1792,30 @@ def _find_next_convex_point(poly, i):
 
 def point_in_polygon(poly, point, exact=True):
     return Polygon(poly).contains_point(point, exact)
+
+
+def union(items):
+    """Return a spatial union of the items.
+
+    'items' must be an iterable of geometries.
+
+    The result a geometry, or a collection of geometries, that includes all the
+    points covered by the 'items'.  If there are no items, return None.
+    """
+    if not items:
+        return None
+    if len(items) == 1:
+        return items[0]
+
+    result = []
+    for i, a in enumerate(items):
+        for j, b in enumerate(items):
+            if i == j:
+                continue
+            if not (isinstance(b, Shape) and b.covers(a)):
+                result.append(a)
+
+    if len(result) == 1:
+        return result[0]
+
+    return Collection.make(result)

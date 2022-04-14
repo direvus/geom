@@ -1,7 +1,7 @@
 import unittest
 
 import geom
-from geom import P, L, B, Pg, Co, MP, ML, MPg
+from geom import P, L, B, Pg, Co, ML, MPg
 
 
 class TestPoint(unittest.TestCase):
@@ -1035,13 +1035,40 @@ class TestPolygon(unittest.TestCase):
         exp = Pg([(0, 0), (0, 2), (1, 0), (0, 0)])
         self.assertEqual(f(L((0, 2), (1, 0))), exp)
 
-        # Non-convex
+    def test_crop_line_non_convex(self):
         a = Pg([
                 (1, 0), (1, 4), (2, 4), (2, 1), (4, 1),
                 (4, 4), (5, 4), (5, 0), (1, 0)])
         f = a.crop_line
+
+        # Single point
+        b = L((6, 3), (4, 5))
+        self.assertEqual(f(b), P(5, 4))
+
+        # Single polygon
         b = L((0, 2), (6, 2))
         exp = Pg([
                 (1, 0), (1, 2), (2, 2), (2, 1), (4, 1),
                 (4, 2), (5, 2), (5, 0), (1, 0)])
         self.assertEqual(f(b), exp)
+
+        # Multiple polygons
+        b = -b
+        exp = MPg([
+            Pg([(1, 2), (1, 4), (2, 4), (2, 2), (1, 2)]),
+            Pg([(4, 2), (4, 4), (5, 4), (5, 2), (4, 2)]),
+            ])
+
+        # Single polygon, including boundary segments
+        b = L((2, 1), (3, 1))
+        exp = Pg([(1, 0), (1, 1), (5, 1), (5, 0), (1, 0)])
+        self.assertEqual(f(b), exp)
+
+        # Multiple boundary segments
+        b = L((3, 4), (2, 4))
+        exp = ML((L((1, 4), (2, 4)), L((4, 4), (5, 4))))
+        self.assertEqual(f(b), exp)
+
+        # Single polygon that includes the start point
+        b = L((1, 1), (2, 0))
+        exp = Pg([(1, 0), (1, 1), (2, 0), (1, 0)])

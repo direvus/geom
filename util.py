@@ -7,6 +7,24 @@ from decimal import Decimal
 ABS_TOL = 1e-8
 
 
+class UniqueList(list):
+    """A de-duplicating list.
+
+    This works exactly like a standard list except that when asked to add an
+    item that is already present, it will quietly decline to do so.
+
+    As a result, items that are added multiple times will only be present at
+    the index where they were first added.
+    """
+    def append(self, value):
+        if value not in self:
+            return super().append(value)
+
+    def extend(self, values):
+        for value in values:
+            self.append(value)
+
+
 def flatten_coords(*args):
     """Take arbitrarily structured coordinate pairs and flatten them.
 
