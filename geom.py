@@ -17,6 +17,18 @@ class Geometry():
         """
         raise NotImplementedError()
 
+    def intersection_collection(self, other):
+        """Return an intersection between this geometry and a collection."""
+        if self.disjoint(other):
+            return None
+
+        result = self
+        for item in other:
+            result = self.intersection(item)
+            if result is None:
+                return None
+        return result
+
     def intersection(self, other):
         """Return a geometry of the mutual interior from both inputs.
 
@@ -28,12 +40,11 @@ class Geometry():
         - Point & anything => Point
         - Line  & Line     => Line or Point
         - Line  & Shape    => Line, Point or a Collection of Lines and Points
-        - Shape & Shape    => Shape or Line or Point
+        - Shape & Shape    => Line, Point, Shape or any Collection
 
         The intersection of a point with any geometry is the point itself, if
         there is any intersection, otherwise None.
         """
-        raise NotImplementedError()
 
     def union(self, other):
         """Return a geometry of the combined interior of both inputs."""
@@ -80,20 +91,33 @@ class Collection(Geometry):
     def make(items):
         """Produce a Collection instance according to the types of the inputs.
 
-        If all the inputs are Points, return a MultiPoint.  If all the inputs
-        are Lines, return a MultiLine, and so on.
+        This function will return a homogeneous collection if possible.  That
+        is, if all the inputs are Points, it will return a MultiPoint.  If all
+        the inputs are Lines, it will return a MultiLine, and so on.
 
         If there are no inputs, or the inputs contain a mixture of types,
         return a generic Collection.
+
+        This function will not produce nested Collections.  If an input to
+        make() is itself a Collection, we take the items of that Collection as
+        the inputs instead.
         """
         cls = Collection
         if not items:
             return cls()
-        if all([isinstance(x, Polygon) for x in items]):
+
+        unnested = []
+        for item in items:
+            if isinstance(item, Collection):
+                unnested.extend(item.items)
+            else:
+                unnested.append(item)
+
+        if all([isinstance(x, Polygon) for x in unnested]):
             cls = MultiPolygon
-        elif all([isinstance(x, Line) for x in items]):
+        elif all([isinstance(x, Line) for x in unnested]):
             cls = MultiLine
-        elif all([isinstance(x, Point) for x in items]):
+        elif all([isinstance(x, Point) for x in unnested]):
             cls = MultiPoint
 
         return cls(items)
@@ -590,7 +614,7 @@ class Line(Geometry):
         if isinstance(other, Line):
             return self.intersection_line(other)
 
-        if isinstance(other, Shape):
+        if isinstance(other, Geometry):
             return other.intersection(self)
 
     def crop_line(self, other):
@@ -788,8 +812,9 @@ class BoundingBox(Shape):
         if isinstance(other, (Point, BoundingBox)):
             return not self.disjoint(other)
 
-        if isinstance(other, Shape) and self.disjoint(other.bbox):
-            return False
+        if isinstance(other, (Shape, Collection)):
+            if self.disjoint(other.bbox):
+                return False
 
         if self.contains(other):
             return True
@@ -808,6 +833,9 @@ class BoundingBox(Shape):
                     if box_line.intersects(poly_line):
                         return True
             return False
+
+        if isinstance(other, Collection):
+            return any([self.intersects(x) for x in other])
 
     def contains(self, other):
         if isinstance(other, Point):
@@ -844,6 +872,11 @@ class BoundingBox(Shape):
                     return False
             return True
 
+        if isinstance(other, Collection):
+            return (
+                    self.covers(other) and
+                    any([self.contains(x) for x in other]))
+
     def covers(self, other):
         if isinstance(other, Point):
             return not self.disjoint(other)
@@ -864,6 +897,9 @@ class BoundingBox(Shape):
                 if self.disjoint(p):
                     return False
             return True
+
+        if isinstance(other, Collection):
+            return all([self.covers(x) for x in other])
 
     def intersection_line(self, other):
         """Return the intersection of this box with a Line.
@@ -926,6 +962,9 @@ class BoundingBox(Shape):
 
         if isinstance(other, BoundingBox):
             return self.intersection_bbox(other)
+
+        if isinstance(other, Collection):
+            return self.intersection_collection(other)
 
         return other.intersection(self)
 
@@ -1035,9 +1074,9 @@ class Polygon(Shape):
         """Return whether 'point' is nearly equal to any of the polygon's vertices.
 
         Despite the name of the Python magic method, this doesn't test
-        "containment" in the geometric sense, but rather it tests membership.
-        To test whether a point is contained in the area of the polygon, use
-        contains()
+        "containment" in the geometric sense, but rather it tests *membership*.
+        To test whether a geometry is spatially contained in the polygon, use
+        contains().
         """
         p = Point(point)
         return any([p.nearly_equal(x) for x in self.points])
@@ -1265,6 +1304,11 @@ class Polygon(Shape):
 
         if isinstance(other, Polygon):
             return self.contains_polygon(other)
+
+        if isinstance(other, Collection):
+            return (
+                    self.covers(other) and
+                    any([self.contains(x) for x in other]))
 
         raise ValueError(
                 f"Unsupported type for polygon contains: {type(other)}.")
@@ -1527,7 +1571,13 @@ class Polygon(Shape):
         if isinstance(other, BoundingBox):
             return self.intersection_bbox(other)
 
-        raise NotImplementedError()
+        if isinstance(other, Polygon):
+            return self.intersection_bbox(other)
+
+        if isinstance(other, Geometry):
+            raise NotImplementedError()
+
+        raise ValueError(f"Invalid type for intersection: {type(other)}.")
 
     def move(self, x=0, y=0):
         """Return a new Polygon spatially shifted relative to this one."""
