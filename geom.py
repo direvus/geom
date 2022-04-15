@@ -37,7 +37,7 @@ class Geometry():
 
     def union(self, other):
         """Return a geometry of the combined interior of both inputs."""
-        raise NotImplementedError()
+        return union(self, other)
 
     def intersects(self, other):
         return self.intersection(other) is not None
@@ -97,6 +97,30 @@ class Collection(Geometry):
             cls = MultiPoint
 
         return cls(items)
+
+    @property
+    def bbox(self):
+        """Return the overall bounding box for this collection."""
+        min_x = None
+        min_y = None
+        max_x = None
+        max_y = None
+        for item in self.items:
+            if isinstance(item, Point):
+                bbox = item.x, item.y, item.x, item.y
+            else:
+                bbox = item.bbox.as_tuple()
+
+            if min_x is None or bbox[0] < min_x:
+                min_x = bbox[0]
+            if min_y is None or bbox[1] < min_y:
+                min_y = bbox[1]
+            if max_x is None or bbox[2] > max_x:
+                max_x = bbox[2]
+            if max_y is None or bbox[3] > max_y:
+                max_y = bbox[3]
+
+        return BoundingBox(min_x, min_y, max_x, max_y)
 
 
 class Point(Geometry):
@@ -178,10 +202,17 @@ class Point(Geometry):
         return not other.intersects(self)
 
     def distance(self, other):
-        """Return the distance between two points."""
+        """Return the Euclidean distance between two points."""
         if self == other:
             return 0
-        return math.dist(self.as_tuple(), other.as_tuple())
+        try:
+            return math.dist(self.as_tuple(), other.as_tuple())
+        except AttributeError:
+            # math.dist was added in Python 3.8, we might be running on an
+            # earlier version.
+            dx = other.x - self.x
+            dy = other.y - self.y
+            return math.sqrt((dy ** 2.0) + (dx ** 2.0))
 
     def move(self, x=0, y=0):
         """Return a new Point with position relative to this one."""
@@ -1814,6 +1845,8 @@ def union(items):
                 continue
             if not (isinstance(b, Shape) and b.covers(a)):
                 result.append(a)
+
+    # TODO: handle partial intersections
 
     if len(result) == 1:
         return result[0]
