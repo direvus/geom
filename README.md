@@ -29,6 +29,8 @@ Extended 9-Intersection Model](https://en.wikipedia.org/wiki/DE-9IM) (DE-9IM):
 
 Python 3, standard library only.
 
+**Optional**: If you want to generate plots, you will need `matplotlib`, but it isn't required otherwise.
+
 # Purpose
 
 This library was written for self-education and fun.  I don't expect it will

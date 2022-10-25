@@ -5,6 +5,16 @@ import math
 from util import UniqueList, float_close, float_gt, float_lt
 
 
+class Plot():
+    def __init__(self):
+        import matplotlib.pyplot as plt
+
+        self.plot = plt
+        self.fig, self.ax = plt.subplots()
+        self.ax.axis('equal')
+        self.ax.grid(True)
+
+
 class Geometry():
     __slots__ = []
 
@@ -59,6 +69,15 @@ class Geometry():
     def __or__(self, other):
         return self.union(other)
 
+    def add_to_plot(self, plot):
+        raise NotImplementedError()
+
+    def plot(self):
+        """Add this geometry to a new Plot object and return the Plot."""
+        plot = Plot()
+        self.add_to_plot(plot)
+        return plot
+
 
 class Collection(Geometry):
     __slots__ = ['items']
@@ -86,6 +105,10 @@ class Collection(Geometry):
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self})'
+
+    def add_to_plot(self, plot):
+        for item in self:
+            item.add_to_plot(plot)
 
     @staticmethod
     def make(items):
@@ -253,6 +276,9 @@ class Point(Geometry):
 
     def __hash__(self):
         return hash(('Point', self.x, self.y))
+
+    def add_to_plot(self, plot):
+        plot.ax.plot((self.x,), (self.y,))
 
 
 class Line(Geometry):
@@ -700,6 +726,9 @@ class Line(Geometry):
     def __hash__(self):
         return hash(('Line', self.a, self.b))
 
+    def add_to_plot(self, plot):
+        plot.ax.plot((self.a.x, self.b.x), (self.a.y, self.b.y))
+
 
 class Shape(Geometry):
     """A Shape is any geometry that has an interior.
@@ -990,6 +1019,11 @@ class BoundingBox(Shape):
 
     def __repr__(self):
         return f"BoundingBox({self})"
+
+    def add_to_plot(self, plot):
+        x = (self.min_x, self.max_x, self.max_x, self.min_x, self.min_x)
+        y = (self.min_y, self.min_y, self.max_y, self.max_y, self.min_y)
+        plot.ax.plot(x, y)
 
 
 class Polygon(Shape):
@@ -1705,6 +1739,11 @@ class Polygon(Shape):
             return result[0]
 
         return union(result)
+
+    def add_to_plot(self, plot):
+        x = [p.x for p in self.points]
+        y = [p.y for p in self.points]
+        plot.ax.plot(x, y)
 
 
 class HomogeneousCollection(Collection):
