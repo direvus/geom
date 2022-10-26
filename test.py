@@ -1,3 +1,4 @@
+import math
 import unittest
 
 import geom
@@ -14,6 +15,10 @@ class TestLine(unittest.TestCase):
     def assertPointEqual(self, a, b):
         self.assertAlmostEqual(a[0], b[0])
         self.assertAlmostEqual(a[1], b[1])
+
+    def assertLineEqual(self, a, b):
+        self.assertPointEqual(a.a, b.a)
+        self.assertPointEqual(a.b, b.b)
 
     def test_constructor(self):
         with self.assertRaises(ValueError):
@@ -229,6 +234,54 @@ class TestLine(unittest.TestCase):
         self.assertEqual(f(b), L((0, 0), (2, 2)))
         b = -b
         self.assertEqual(f(b), L((2, 2), (4, 4)))
+
+    def test_get_adjacent_line(self):
+        root_half = math.sqrt(0.5)
+        f = geom.get_adjacent_line
+        # Horizontal line along positive X axis
+        l = L((0, 0), (1, 0))
+        # No deflection
+        self.assertLineEqual(f(l.a, l.b, 0, 1), L((1, 0), (2, 0)))
+        # Rotating counter-clockwise by 90 degree increments
+        self.assertLineEqual(f(l.a, l.b, math.radians(90), 1), L((1, 0), (1, 1)))
+        self.assertLineEqual(f(l.a, l.b, math.radians(180), 1), L((1, 0), (0, 0)))
+        self.assertLineEqual(f(l.a, l.b, math.radians(270), 1), L((1, 0), (1, -1)))
+        self.assertLineEqual(f(l.a, l.b, math.radians(360), 1), L((1, 0), (2, 0)))
+        # Check negative angle (clockwise rotation) too.
+        self.assertLineEqual(f(l.a, l.b, math.radians(-90), 1), L((1, 0), (1, -1)))
+
+        expect = L((1, 0), (1 + root_half, root_half))
+        self.assertLineEqual(f(l.a, l.b, math.radians(45), 1), expect)
+
+        # Vertical line along positive Y axis
+        l = L((0, 0), (0, 1))
+        # No deflection
+        self.assertLineEqual(f(l.a, l.b, 0, 1), L((0, 1), (0, 2)))
+        # Rotating counter-clockwise by 90 degree increments
+        self.assertLineEqual(f(l.a, l.b, math.radians(90), 1), L((0, 1), (-1, 1)))
+        self.assertLineEqual(f(l.a, l.b, math.radians(180), 1), L((0, 1), (0, 0)))
+        self.assertLineEqual(f(l.a, l.b, math.radians(270), 1), L((0, 1), (1, 1)))
+        self.assertLineEqual(f(l.a, l.b, math.radians(360), 1), L((0, 1), (0, 2)))
+
+        # Horizontal line along negative X axis
+        l = L((0, 0), (-1, 0))
+        # No deflection
+        self.assertLineEqual(f(l.a, l.b, 0, 1), L((-1, 0), (-2, 0)))
+        # Rotating counter-clockwise by 90 degree increments
+        self.assertLineEqual(f(l.a, l.b, math.radians(90), 1), L((-1, 0), (-1, -1)))
+        self.assertLineEqual(f(l.a, l.b, math.radians(180), 1), L((-1, 0), (0, 0)))
+        self.assertLineEqual(f(l.a, l.b, math.radians(270), 1), L((-1, 0), (-1, 1)))
+        self.assertLineEqual(f(l.a, l.b, math.radians(360), 1), L((-1, 0), (-2, 0)))
+
+        # Vertical line along negative Y axis
+        l = L((0, 0), (0, -1))
+        # No deflection
+        self.assertLineEqual(f(l.a, l.b, 0, 1), L((0, -1), (0, -2)))
+        # Rotating counter-clockwise by 90 degree increments
+        self.assertLineEqual(f(l.a, l.b, math.radians(90), 1), L((0, -1), (1, -1)))
+        self.assertLineEqual(f(l.a, l.b, math.radians(180), 1), L((0, -1), (0, 0)))
+        self.assertLineEqual(f(l.a, l.b, math.radians(270), 1), L((0, -1), (-1, -1)))
+        self.assertLineEqual(f(l.a, l.b, math.radians(360), 1), L((0, -1), (0, -2)))
 
 
 class TestBoundingBox(unittest.TestCase):

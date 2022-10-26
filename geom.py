@@ -5,6 +5,10 @@ import math
 from util import UniqueList, float_close, float_gt, float_lt
 
 
+π = math.pi
+TWOπ = 2 * π
+
+
 class Plot():
     def __init__(self):
         import matplotlib.pyplot as plt
@@ -444,16 +448,11 @@ class Line(Geometry):
         if a == p or b == p:
             return None
 
-        π = math.pi
         angle_ab = self.angle
         angle_ap = Line(a, p).angle
         if float_close(angle_ab, angle_ap):
             return None
-        relative_angle = angle_ap - angle_ab
-        if relative_angle > π:
-            relative_angle -= 2 * π
-        elif relative_angle < -π:
-            relative_angle += 2 * π
+        relative_angle = normalise_angle(angle_ap - angle_ab)
         return relative_angle < 0
 
     def extrapolate_intersection(self, other):
@@ -675,6 +674,21 @@ class Line(Geometry):
         """Return a new Line spatially shifted relative to this Line."""
         return Line(self.a.move(x, y), self.b.move(x, y))
 
+    def get_adjacent_line(self, angle, length):
+        """Return a new line adjacent to this line.
+        
+        The new line will begin at the endpoint B of the current line, and its
+        direction will be as the current line, rotated counter-clockwise by `angle`
+        radians.
+        """
+        xangle = normalise_angle(self.angle + angle)
+        x = length * math.cos(xangle)
+        y = math.sqrt(length**2 - x**2)
+        if xangle < 0:
+            y = -y
+        c = (self.b.x + x, self.b.y + y)
+        return Line(self.b, c)
+
     def __eq__(self, other):
         """Return whether two lines are exactly equal.
 
@@ -733,10 +747,13 @@ class Line(Geometry):
 class Shape(Geometry):
     """A Shape is any geometry that has an interior.
 
-    More precisely, a Shape divides the coordinate space into three categories:
+    A Shape divides the coordinate space into three categories:
     - interior,
     - exterior and
     - boundary.
+
+    Any given point in the coordinate space either lies inside the Shape, on its
+    boundary, or outside the Shape.
     """
     __slots__ = []
 
@@ -1825,6 +1842,17 @@ def get_intercept_v(a, b, x):
     return Line(a, b).get_x_intercept(x)
 
 
+def get_adjacent_line(a, b, angle, length):
+    """Return a new line adjacent to the line (a, b).
+    
+    The new line will begin at the endpoint (b) of the current line, and its
+    direction will be as the current line, rotated counter-clockwise by `angle`
+    radians.
+    """
+    line = Line(a, b)
+    return line.get_adjacent_line(angle, length)
+
+
 def get_polygon_lines(poly):
     """Return an iterable of all line segments in the polygon."""
     return [(poly[i], poly[i+1]) for i in range(len(poly) - 1)]
@@ -1941,3 +1969,20 @@ def union(items):
         return result[0]
 
     return Collection.make(result)
+
+
+def normalise_angle(angle):
+    """Normalise an angle in radians.
+    
+    The result is an angle as a number of radians between π and -π.  A positive
+    angle indicates a counter-clockwise turn ("left") and a negative angle
+    means a clockwise turn ("right").
+    """
+    result = angle
+    if abs(angle) > π:
+        result = angle % TWOπ
+    if result > π:
+        result -= TWOπ
+    elif result < -π:
+        result += TWOπ
+    return result
