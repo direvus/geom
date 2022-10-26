@@ -5,13 +5,7 @@ import geom
 from geom import P, L, B, Pg, Co, ML, MPg
 
 
-class TestPoint(unittest.TestCase):
-    def test_point_eq(self):
-        self.assertEqual(P((1, 1)), P((1.0, 1.0)))
-        self.assertNotEqual(P((1, 1)), P((1.0001, 1.0)))
-
-
-class TestLine(unittest.TestCase):
+class GeomTestCase(unittest.TestCase):
     def assertPointEqual(self, a, b):
         self.assertAlmostEqual(a[0], b[0])
         self.assertAlmostEqual(a[1], b[1])
@@ -20,6 +14,14 @@ class TestLine(unittest.TestCase):
         self.assertPointEqual(a.a, b.a)
         self.assertPointEqual(a.b, b.b)
 
+
+class TestPoint(GeomTestCase):
+    def test_point_eq(self):
+        self.assertEqual(P((1, 1)), P((1.0, 1.0)))
+        self.assertNotEqual(P((1, 1)), P((1.0001, 1.0)))
+
+
+class TestLine(GeomTestCase):
     def test_constructor(self):
         with self.assertRaises(ValueError):
             L((3, 5), (3.0, 5.0))
@@ -284,7 +286,7 @@ class TestLine(unittest.TestCase):
         self.assertLineEqual(f(l.a, l.b, math.radians(360), 1), L((0, -1), (0, -2)))
 
 
-class TestBoundingBox(unittest.TestCase):
+class TestBoundingBox(GeomTestCase):
     def test_contains(self):
         bbox = B(-2, -7/3, 3.1, 6)
         f = bbox.contains
@@ -451,7 +453,7 @@ class TestBoundingBox(unittest.TestCase):
         self.assertEqual(f(poly), P(5, 5))
 
 
-class TestPolygon(unittest.TestCase):
+class TestPolygon(GeomTestCase):
     def test_constructor(self):
         # not enough distinct points
         with self.assertRaises(ValueError):
@@ -1125,3 +1127,159 @@ class TestPolygon(unittest.TestCase):
         # Single polygon that includes the start point
         b = L((1, 1), (2, 0))
         exp = Pg([(1, 0), (1, 1), (2, 0), (1, 0)])
+
+
+class TestRegularPolygon(GeomTestCase):
+    def test_triangle_radius(self):
+        c = P(0, 0)
+        a = geom.regular_polygon(c, 3, radius=1)
+        self.assertEqual(len(a), 4)
+        self.assertEqual(a[0], P(0, 1))
+
+        # All lines have equal length
+        self.assertEqual(a.lines[0].length, a.lines[1].length)
+        self.assertEqual(a.lines[0].length, a.lines[2].length)
+
+        # The distance from the center to any vertex is equal to the radius
+        self.assertAlmostEqual(c.distance(a[0]), 1)
+        self.assertAlmostEqual(c.distance(a[1]), 1)
+        self.assertAlmostEqual(c.distance(a[2]), 1)
+
+        # All interior angles are equal
+        angle = math.pi / 3
+        self.assertAlmostEqual(a.lines[1].angle - (-(a.lines[0])).angle, angle)
+        self.assertAlmostEqual(a.lines[2].angle - (-(a.lines[1])).angle, angle)
+        self.assertAlmostEqual(a.lines[0].angle - (-(a.lines[2])).angle, angle)
+
+    def test_triangle_side(self):
+        c = P(0, 0)
+        a = geom.regular_polygon(c, 3, side_length=1)
+        self.assertEqual(len(a), 4)
+        self.assertAlmostEqual(c.x, a[0].x)
+        self.assertAlmostEqual(a[1].x, 0.5)
+
+        # All lines have the correct length
+        self.assertAlmostEqual(a.lines[0].length, 1)
+        self.assertAlmostEqual(a.lines[1].length, 1)
+        self.assertAlmostEqual(a.lines[2].length, 1)
+
+        # The distances from the center to any vertex are equal to each other
+        self.assertAlmostEqual(c.distance(a[0]), c.distance(a[1]))
+        self.assertAlmostEqual(c.distance(a[0]), c.distance(a[2]))
+
+        # All interior angles are equal
+        angle = math.pi / 3
+        self.assertAlmostEqual(a.lines[1].angle - (-(a.lines[0])).angle, angle)
+        self.assertAlmostEqual(a.lines[2].angle - (-(a.lines[1])).angle, angle)
+        self.assertAlmostEqual(a.lines[0].angle - (-(a.lines[2])).angle, angle)
+
+    def test_square_radius(self):
+        c = P(0, 0)
+        a = geom.regular_polygon(c, 4, radius=10)
+        self.assertEqual(len(a), 5)
+        self.assertPointEqual(a[0], P(0, 10))
+        self.assertPointEqual(a[1], P(10, 0))
+        self.assertPointEqual(a[2], P(0, -10))
+        self.assertPointEqual(a[3], P(-10, 0))
+
+    def test_square_side(self):
+        c = P(0, 0)
+        a = geom.regular_polygon(c, 4, side_length=10)
+        self.assertEqual(len(a), 5)
+        self.assertAlmostEqual(a[0].x, c.x)
+        self.assertAlmostEqual(a[1].y, c.y)
+        self.assertAlmostEqual(a[2].x, c.x)
+        self.assertAlmostEqual(a[3].y, c.y)
+
+        # All lines have the correct length
+        for line in a.lines:
+            self.assertAlmostEqual(line.length, 10)
+
+    def test_pentagon_radius(self):
+        r = 5
+        c = P(0, 0)
+        a = geom.regular_polygon(c, 5, radius=r)
+        self.assertEqual(len(a), 6)
+        self.assertEqual(a[0].x, c.x)
+        self.assertEqual(a[0].y, c.y + r)
+
+        # All lines have equal length
+        length = a.lines[0].length
+        for n in range(1, 5):
+            self.assertAlmostEqual(a.lines[n].length, length)
+
+        # The distance from the center to any vertex is equal to the radius
+        for p in a:
+            self.assertAlmostEqual(c.distance(p), r)
+
+        # All interior angles are 108 degrees
+        angle = math.radians(108)
+        for i in range(5):
+            self.assertAlmostEqual(a.lines[i].relative_angle(a.lines[(i+1) % 5]), angle)
+
+    def test_pentagon_side(self):
+        s = 5
+        c = P(-5, 10)
+        a = geom.regular_polygon(c, 5, side_length=s)
+        self.assertEqual(len(a), 6)
+        self.assertEqual(a[0].x, c.x)
+
+        # All lines have the correct length
+        for n in range(1, 5):
+            self.assertAlmostEqual(a.lines[n].length, s)
+
+        # The distances from the center to any vertex are equal to each other
+        r = c.distance(a[0])
+        for p in a:
+            self.assertAlmostEqual(c.distance(p), r)
+
+        # All interior angles are 108 degrees
+        angle = math.radians(108)
+        for i in range(5):
+            self.assertAlmostEqual(a.lines[i].relative_angle(a.lines[(i+1) % 5]), angle)
+
+    def test_centagon_radius(self):
+        # Go big or go home
+        n = 100
+        r = 5000
+        c = P(0, 0)
+        a = geom.regular_polygon(c, n, radius=r)
+        self.assertEqual(len(a), n + 1)
+        self.assertEqual(a[0].x, c.x)
+        self.assertEqual(a[0].y, c.y + r)
+
+        # All lines have equal length
+        length = a.lines[0].length
+        for i in range(1, 5):
+            self.assertAlmostEqual(a.lines[i].length, length)
+
+        # The distance from the center to any vertex is equal to the radius
+        for p in a:
+            self.assertAlmostEqual(c.distance(p), r)
+
+        # All interior angles are correct
+        angle = math.pi - (2 * math.pi / n)
+        for i in range(n):
+            self.assertAlmostEqual(a.lines[i].relative_angle(a.lines[(i+1) % n]), angle, msg=f"Fail at index {i}")
+
+    def test_centagon_side(self):
+        n = 100
+        s = 100
+        c = P(-5, 10)
+        a = geom.regular_polygon(c, n, side_length=s)
+        self.assertEqual(len(a), n + 1)
+        self.assertEqual(a[0].x, c.x)
+
+        # All lines have the correct length
+        for i in range(1, n):
+            self.assertAlmostEqual(a.lines[i].length, s)
+
+        # The distances from the center to any vertex are equal to each other
+        r = c.distance(a[0])
+        for p in a:
+            self.assertAlmostEqual(c.distance(p), r)
+
+        # All interior angles are correct
+        angle = math.pi - (2 * math.pi / n)
+        for i in range(n):
+            self.assertAlmostEqual(a.lines[i].relative_angle(a.lines[(i+1) % n]), angle)

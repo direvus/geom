@@ -348,6 +348,17 @@ class Line(Geometry):
         """
         return math.atan2(self.dy, self.dx)
 
+    def relative_angle(self, other):
+        """Return the relative angle between this line and another line.
+        
+        The relative angle is given as a number of radians between π and -π, and
+        is the amount of counter-clockwise rotation you would apply to this
+        line, anchored at its final point, in order for it to parallel the other
+        line.
+        """
+        neg = -self
+        return normalise_angle(other.angle - neg.angle)
+
     @property
     def points(self):
         """Return an iterable of this line's points."""
@@ -1986,3 +1997,80 @@ def normalise_angle(angle):
     elif result < -π:
         result += TWOπ
     return result
+
+
+def regular_polygon(center:Point, sides:int, radius=None, side_length=None) -> Polygon:
+    """Return a regular Polygon
+    
+    The returned Polygon will have `sides` sides, all sides will be of the same
+    length, all angles will be the same size, and its geometric center will lie
+    at the `center` point.
+
+    You must specify either a `side_length` or a `radius` to control the size of
+    the polygon, but not both.  If you use `radius`, it measures the distance
+    between the center and any vertex of the polygon (if the polygon was
+    inscribed within a circle, it would be the radius of that circle).
+
+    The polygon will be oriented so that its starting point lies directly above
+    the center.
+    """
+    if not (side_length or radius):
+        raise ValueError("Neither side length nor radius given for regular polygon.")
+    if side_length and radius:
+        raise ValueError("Both side length and radius given for regular polygon.")
+    if sides < 3:
+        raise ValueError(f"Invalid number of sides for polygon: {sides}.")
+    c = Point(center)
+    angle = TWOπ / sides  # angle of deflection
+
+    # Special case for triangle
+    if sides == 3:
+        if side_length:
+            x = side_length / 2
+            y = x * math.tan(π / 6)
+            radius = math.sqrt(x**2 + y**2)
+        else:
+            y = radius * math.sin(π / 6)
+            x = math.sqrt(radius**2 - y**2)
+        return Polygon((
+            Point(c.x, c.y + radius),
+            Point(c.x + x, c.y - y),
+            Point(c.x - x, c.y - y)))
+
+    # Special case for square
+    if sides == 4:
+        if side_length:
+            radius = math.sqrt((side_length ** 2) / 2)
+        points = (
+            Point(c.x, c.y + radius),
+            Point(c.x + radius, c.y),
+            Point(c.x, c.y - radius),
+            Point(c.x - radius, c.y))
+        return Polygon(points)
+
+    # Now that we've got triangles and squares out of the way, it's safe to
+    # assume deflection angle less than 90 degrees.
+    if radius:
+        a = Point(c.x, c.y + radius)
+        # Work out bx and by relative to the center
+        bx = radius * math.sin(angle)
+        by = math.sqrt(radius**2 - bx**2)
+        b = Point(c.x + bx, c.y + by)
+        line = Line(a, b)
+        side_length = line.length
+    else:
+        # Work out bx and by relative to the start point
+        interior_angle = π - angle
+        bx = side_length * math.sin(interior_angle / 2)
+        by = math.sqrt(side_length**2 - bx**2)
+        radius = bx / math.sin(angle)
+        a = Point(c.x, c.y + radius)
+        b = Point(a.x + bx, a.y - by)
+        line = Line(a, b)
+    last = Point(c.x - bx, b.y)
+    points = [a, b]
+    for _ in range(sides - 3):
+        line = line.get_adjacent_line(-angle, side_length)
+        points.append(line.b)
+    points.append(last)
+    return Polygon(points)
