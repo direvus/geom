@@ -23,7 +23,11 @@ Extended 9-Intersection Model](https://en.wikipedia.org/wiki/DE-9IM) (DE-9IM):
   - *Shape* (abstract)
     - BoundingBox
     - Polygon
-    - Circle
+  - Collection
+    - *HomogeneousCollection* (abstract)
+      - MultiPoint
+      - MultiLine
+      - MultiPolygon (also implements *Shape*)
 
 # Dependencies
 
