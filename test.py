@@ -5,6 +5,9 @@ import geom
 from geom import P, L, B, Pg, Co, ML, MPg
 
 
+π = math.pi
+
+
 class GeomTestCase(unittest.TestCase):
     def assertPointEqual(self, a, b):
         self.assertAlmostEqual(a[0], b[0])
@@ -25,6 +28,52 @@ class TestLine(GeomTestCase):
     def test_constructor(self):
         with self.assertRaises(ValueError):
             L((3, 5), (3.0, 5.0))
+
+    def test_angle(self):
+        # Horizontal
+        self.assertAlmostEqual(L((0, 0), (1, 0)).angle, 0)
+        self.assertAlmostEqual(abs(L((0, 0), (-1, 0)).angle), π)
+
+        # Vertical
+        self.assertAlmostEqual(L((0, 0), (0, 1)).angle, π / 2)
+        self.assertAlmostEqual(L((0, 0), (0, -1)).angle, -π / 2)
+
+        # 45° in each quadrant
+        self.assertAlmostEqual(L((0, 0), (1, 1)).angle, π / 4)
+        self.assertAlmostEqual(L((0, 0), (-1, 1)).angle, 3 * π / 4)
+        self.assertAlmostEqual(L((0, 0), (1, -1)).angle, -π / 4)
+        self.assertAlmostEqual(L((0, 0), (-1, -1)).angle, -3 * π / 4)
+
+    def test_relative_angle(self):
+        a = L((0, 0), (1, 0))
+        # Horizontal
+        self.assertAlmostEqual(a.relative_angle(L((0, 0), (1, 0))), 0)
+        self.assertAlmostEqual(abs(a.relative_angle(L((0, 0), (-1, 0)))), π)
+
+        # Vertical
+        self.assertAlmostEqual(a.relative_angle(L((0, 0), (0, 1))), π / 2)
+        self.assertAlmostEqual(a.relative_angle(L((0, 0), (0, -1))), -π / 2)
+
+        # 45° in each quadrant
+        self.assertAlmostEqual(a.relative_angle(L((0, 0), (1, 1))), π / 4)
+        self.assertAlmostEqual(a.relative_angle(L((0, 0), (-1, 1))), 3 * π / 4)
+        self.assertAlmostEqual(a.relative_angle(L((0, 0), (1, -1))), -π / 4)
+        self.assertAlmostEqual(a.relative_angle(L((0, 0), (-1, -1))), -3 * π / 4)
+
+        a = L((0, 0), (-1, -1))
+        # Horizontal
+        self.assertAlmostEqual(a.relative_angle(L((0, 0), (1, 0))), 3 * π / 4)
+        self.assertAlmostEqual(a.relative_angle(L((0, 0), (-1, 0))), -π / 4)
+
+        # Vertical
+        self.assertAlmostEqual(a.relative_angle(L((0, 0), (0, 1))), -3 * π / 4)
+        self.assertAlmostEqual(a.relative_angle(L((0, 0), (0, -1))), π / 4)
+
+        # 45° in each quadrant
+        self.assertAlmostEqual(a.relative_angle(L((0, 0), (1, 1))), π)
+        self.assertAlmostEqual(a.relative_angle(L((0, 0), (-1, 1))), -π / 2)
+        self.assertAlmostEqual(a.relative_angle(L((0, 0), (1, -1))), π / 2)
+        self.assertAlmostEqual(a.relative_angle(L((0, 0), (-1, -1))), 0)
 
     def test_in_bound(self):
         with self.assertRaises(ValueError):
@@ -1140,7 +1189,7 @@ class TestRegularPolygon(GeomTestCase):
         self.assertEqual(a.lines[0].length, a.lines[1].length)
         self.assertEqual(a.lines[0].length, a.lines[2].length)
 
-        # The distance from the center to any vertex is equal to the radius
+        # The distance from the center to each vertex is equal to the radius
         self.assertAlmostEqual(c.distance(a[0]), 1)
         self.assertAlmostEqual(c.distance(a[1]), 1)
         self.assertAlmostEqual(c.distance(a[2]), 1)
@@ -1163,7 +1212,7 @@ class TestRegularPolygon(GeomTestCase):
         self.assertAlmostEqual(a.lines[1].length, 1)
         self.assertAlmostEqual(a.lines[2].length, 1)
 
-        # The distances from the center to any vertex are equal to each other
+        # All vertices are an equal distance from the center point
         self.assertAlmostEqual(c.distance(a[0]), c.distance(a[1]))
         self.assertAlmostEqual(c.distance(a[0]), c.distance(a[2]))
 
@@ -1215,7 +1264,8 @@ class TestRegularPolygon(GeomTestCase):
         # All interior angles are 108 degrees
         angle = math.radians(108)
         for i in range(5):
-            self.assertAlmostEqual(a.lines[i].relative_angle(a.lines[(i+1) % 5]), angle)
+            line = -(a.lines[i])
+            self.assertAlmostEqual(line.relative_angle(a.lines[(i+1) % 5]), angle)
 
     def test_pentagon_side(self):
         s = 5
@@ -1228,7 +1278,7 @@ class TestRegularPolygon(GeomTestCase):
         for n in range(1, 5):
             self.assertAlmostEqual(a.lines[n].length, s)
 
-        # The distances from the center to any vertex are equal to each other
+        # All vertices are an equal distance from the center point
         r = c.distance(a[0])
         for p in a:
             self.assertAlmostEqual(c.distance(p), r)
@@ -1236,7 +1286,8 @@ class TestRegularPolygon(GeomTestCase):
         # All interior angles are 108 degrees
         angle = math.radians(108)
         for i in range(5):
-            self.assertAlmostEqual(a.lines[i].relative_angle(a.lines[(i+1) % 5]), angle)
+            line = -(a.lines[i])
+            self.assertAlmostEqual(line.relative_angle(a.lines[(i+1) % 5]), angle)
 
     def test_centagon_radius(self):
         # Go big or go home
@@ -1260,7 +1311,8 @@ class TestRegularPolygon(GeomTestCase):
         # All interior angles are correct
         angle = math.pi - (2 * math.pi / n)
         for i in range(n):
-            self.assertAlmostEqual(a.lines[i].relative_angle(a.lines[(i+1) % n]), angle, msg=f"Fail at index {i}")
+            line = -(a.lines[i])
+            self.assertAlmostEqual(line.relative_angle(a.lines[(i+1) % n]), angle)
 
     def test_centagon_side(self):
         n = 100
@@ -1274,7 +1326,7 @@ class TestRegularPolygon(GeomTestCase):
         for i in range(1, n):
             self.assertAlmostEqual(a.lines[i].length, s)
 
-        # The distances from the center to any vertex are equal to each other
+        # All vertices are an equal distance from the center point
         r = c.distance(a[0])
         for p in a:
             self.assertAlmostEqual(c.distance(p), r)
@@ -1282,4 +1334,5 @@ class TestRegularPolygon(GeomTestCase):
         # All interior angles are correct
         angle = math.pi - (2 * math.pi / n)
         for i in range(n):
-            self.assertAlmostEqual(a.lines[i].relative_angle(a.lines[(i+1) % n]), angle)
+            line = -(a.lines[i])
+            self.assertAlmostEqual(line.relative_angle(a.lines[(i+1) % n]), angle)

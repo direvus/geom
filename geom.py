@@ -353,11 +353,14 @@ class Line(Geometry):
         
         The relative angle is given as a number of radians between π and -π, and
         is the amount of counter-clockwise rotation you would apply to this
-        line, anchored at its final point, in order for it to parallel the other
+        line, anchored at its start point, in order for it to parallel the other
         line.
         """
-        neg = -self
-        return normalise_angle(other.angle - neg.angle)
+        if self.a.nearly_equal(other.a) and self.b.nearly_equal(other.b):
+            return 0
+        if self.a.nearly_equal(other.b) and self.b.nearly_equal(other.a):
+            return π
+        return normalise_angle(other.angle - self.angle)
 
     @property
     def points(self):
