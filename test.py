@@ -1177,6 +1177,27 @@ class TestPolygon(GeomTestCase):
         b = L((1, 1), (2, 0))
         exp = Pg([(1, 0), (1, 1), (2, 0), (1, 0)])
 
+    def test_union(self):
+        f = geom.union
+        # Simple triangle
+        a = Pg([(1, 2), (3, 5), (4, 1), (1, 2)])
+
+        # Union with a point inside, or on the boundary, should return just the
+        # polygon itself.
+        res = f(a, P(1, 2))
+        self.assertEqual(res, a)
+        res = f(a, P(3, 3))
+        self.assertEqual(res, a)
+
+        # Union with a point outside should return a collection of the polygon
+        # and the point.
+        p = P(0, 0)
+        res = f(a, p)
+        self.assertIsInstance(res, geom.Collection)
+        self.assertEqual(len(res), 2)
+        self.assertIn(a, res)
+        self.assertIn(p, res)
+
 
 class TestRegularPolygon(GeomTestCase):
     def test_triangle_radius(self):

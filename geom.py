@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # coding: utf-8
 import math
+from functools import reduce
 
 from util import UniqueList, float_close, float_gt, float_lt
 
@@ -173,8 +174,25 @@ class Collection(Geometry):
 
         return BoundingBox(min_x, min_y, max_x, max_y)
 
+    def intersects(self, other):
+        # Shortcut: if this collection's bounding box doesn't intersect with the
+        # other geometry, then there's no way any of its contents do.
+        if not self.bbox.intersects(other):
+            return False
+
+        return any([x.intersects(other) for x in self.items])
+
+    def disjoint(self, other):
+        return not self.intersects(other)
+
 
 class Point(Geometry):
+    """A Point represents a single location in space.
+    
+    For the purposes of this library, a Point has no boundary, and is its own
+    interior.  The exterior of the Point is all space that is not equal to the
+    Point.
+    """
     __slots__ = ['x', 'y']
 
     def __init__(self, *args):
@@ -241,6 +259,17 @@ class Point(Geometry):
 
         return self if other.intersects(self) else None
 
+    def intersects(self, other):
+        """Return whether the point intersects some geometry.
+
+        This is True if and only if the point lies within the interior
+        or boundary of the other geometry.
+        """
+        if isinstance(other, Point):
+            return self == other
+
+        return other.intersects(self)
+
     def disjoint(self, other):
         """Return whether the point is spatially disjoint with some geometry.
 
@@ -289,9 +318,11 @@ class Line(Geometry):
     """A one-dimensional geometry that extends from one point to another.
 
     A Line is considered to be a finite geometry bounded by its points.  That
-    is, it consists of both its endpoints, plus all of the points that lie
-    along the straight line which connects them.  It also has a direction -- it
-    begins at point A and ends at point B.
+    is, its interior is the one-dimensional space that lies between the two
+    endpoints (but not including them), and the boundary is the endpoints
+    themselves.
+
+    A Line has a direction -- it begins at point A and ends at point B.
     """
     __slots__ = ['a', 'b']
 
@@ -571,6 +602,9 @@ class Line(Geometry):
             return self.intersects_line(other)
 
         return other.intersects(self)
+
+    def disjoint(self, other):
+        return not self.intersects(other)
 
     def intersection_line(self, other):
         """Return the shared geometry between two bounded lines.
@@ -1769,7 +1803,7 @@ class Polygon(Shape):
         if len(result) == 1:
             return result[0]
 
-        return union(result)
+        return union(*result)
 
     def add_to_plot(self, plot):
         x = [p.x for p in self.points]
@@ -1956,33 +1990,63 @@ def point_in_polygon(poly, point, exact=True):
     return Polygon(poly).contains_point(point, exact)
 
 
-def union(items):
-    """Return a spatial union of the items.
+def _union2(a:Geometry, b:Geometry) -> Geometry:
+    """Return a spatial union of two geometries.
 
-    'items' must be an iterable of geometries.
+    `a` and `b` must be both be geometries.
 
-    The result a geometry, or a collection of geometries, that includes all the
-    points covered by the 'items'.  If there are no items, return None.
+    The result is a geometry, or a collection of geometries, that includes all the
+    points included by any of the arguments, with no interior overlaps between
+    `a` and `b`.
     """
-    if not items:
-        return None
-    if len(items) == 1:
-        return items[0]
+    if not isinstance(a, Geometry):
+        raise ValueError("Argument 'a' is not a Geometry object.")
+    if not isinstance(b, Geometry):
+        raise ValueError("Argument 'b' is not a Geometry object.")
 
-    result = []
-    for i, a in enumerate(items):
-        for j, b in enumerate(items):
+    if a == b or (isinstance(a, Shape) and a.covers(b)):
+        return a
+    if isinstance(b, Shape) and b.covers(a):
+        return b
+    if a.disjoint(b):
+        return Collection.make((a, b))
+
+    # TODO: handle 'touches'
+    # TODO: handle interior intersections
+
+
+def union(*args):
+    """Return a spatial union of the arguments.
+
+    Each argument must be a geometry.
+
+    The result is a geometry, or a collection of geometries, that includes all the
+    points included by any of the arguments.  Interior overlaps between the
+    arguments will be removed.  If there are no arguments, return None.
+    """
+    if not args:
+        return None
+    for i, arg in enumerate(args):
+        if not isinstance(arg, Geometry):
+            raise ValueError(f"Argument {i+1} is not a Geometry object.")
+
+    # Filter out any arguments that are equal to, or covered by, another argument.
+    items = []
+    for i, a in enumerate(args):
+        include = True
+        for j, b in enumerate(args):
             if i == j:
                 continue
-            if not (isinstance(b, Shape) and b.covers(a)):
-                result.append(a)
+            if a == b or (isinstance(b, Shape) and b.covers(a)):
+                include = False
+                break
+        if include:
+            items.append(a)
 
-    # TODO: handle partial intersections
+    if len(args) == 1:
+        return args[0]
 
-    if len(result) == 1:
-        return result[0]
-
-    return Collection.make(result)
+    return reduce(_union2, args)
 
 
 def normalise_angle(angle):
