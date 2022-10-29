@@ -33,7 +33,7 @@ Extended 9-Intersection Model](https://en.wikipedia.org/wiki/DE-9IM) (DE-9IM):
 
 # Dependencies
 
-Python 3, standard library only.
+Python 3, preferably 3.8+, standard library only.
 
 **Optional**: If you want to generate plots, you will need `matplotlib`, but it isn't required otherwise.
 
