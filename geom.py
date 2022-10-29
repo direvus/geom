@@ -105,6 +105,9 @@ class Collection(Geometry):
     def __iter__(self):
         return iter(self.items)
 
+    def __contains__(self, item):
+        return item in self.items
+
     def __str__(self):
         return ', '.join(map(str, tuple(self.items)))
 
@@ -1498,7 +1501,7 @@ class Polygon(Shape):
         return self.contains(other)
 
     def intersects_bbox(self, other):
-        """Return whether this polygon intersects a boundingbox.
+        """Return whether this polygon intersects a BoundingBox.
 
         See comments at geometry.intersects for the particulars.
         """
@@ -1655,6 +1658,35 @@ class Polygon(Shape):
             result = crop
         return result
 
+    def intersection_polygon(self, other):
+        """Return the intersection of this Polygon with another Polygon.
+
+        The result can be any of None, Point, Line, Polygon, or a Collection of
+        geometries.
+        """
+        if self.disjoint(other):
+            return None
+
+        if self.covers(other):
+            return other
+
+        if other.covers(self):
+            return self
+
+        if other.is_convex:
+            result = self
+            for line in other.lines:
+                crop = result.crop_line(line)
+                if crop is None:
+                    return line.intersection(result)
+                if isinstance(crop, Point):
+                    return crop
+                result = crop
+            return result
+
+        # TODO: non-convex
+        raise NotImplementedError()
+
     def intersection(self, other):
         """Return the intersection of this Polygon with some other geometry.
         """
@@ -1671,7 +1703,10 @@ class Polygon(Shape):
             return self.intersection_bbox(other)
 
         if isinstance(other, Polygon):
-            return self.intersection_bbox(other)
+            return self.intersection_polygon(other)
+
+        if isinstance(other, Collection):
+            return self.intersection_collection(other)
 
         if isinstance(other, Geometry):
             raise NotImplementedError()
@@ -1755,6 +1790,21 @@ class Polygon(Shape):
         initial_bound = line.in_bound(self[0])
         prev_bound = initial_bound
         for i, p in enumerate(self.points):
+            if prev_bound is False and points:
+                # If there is a concavity outside the crop line, break the
+                # collected points along the line that leads into the
+                # concavity.
+                a = self[i-2] if i > 1 else self[-2]
+                b = self[i-1]
+                ab = Line(a, b)
+                if ab.in_bound(p) is False:
+                    shape = []
+                    for x in points:
+                        if ab.in_bound(x) is not False:
+                            shape.append(x)
+                    shapes.append(shape)
+                    points = [x for x in points if x not in shape]
+
             bound = line.in_bound(p)
             if bound is None or (
                     (i == 0 or prev_bound is not False) and
@@ -1768,15 +1818,6 @@ class Polygon(Shape):
             elif bound is True and prev_bound is False:
                 split = line.extrapolate_intersection(Line(prev, p))
                 points.extend((split, p))
-
-            elif points:
-                # If there is a concavity here, break the collected points into
-                # a separate shape group.
-                a = self[i-2] if i > 1 else self[-2]
-                b = self[i-1]
-                if Line(a, b).in_bound(p) is False:
-                    shapes.append(points)
-                    points = UniqueList()
 
             prev = p
             prev_bound = bound
