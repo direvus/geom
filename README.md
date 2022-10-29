@@ -2,8 +2,10 @@
 
 *Geometric primitives in Python*
 
+![GitHub Actions status](https://github.com/direvus/geom/actions/workflows/python-app.yml/badge.svg)
+
 This is a pure Python library that seeks to implement the
-[OGC](https://www.ogc.org) spatial predicates as defined in the [Dimensionally
+[OGC](https://www.ogc.org) spatial predicate functions as defined in the [Dimensionally
 Extended 9-Intersection Model](https://en.wikipedia.org/wiki/DE-9IM) (DE-9IM):
 
 - equals
