@@ -23,6 +23,14 @@ class Plot():
 class Geometry():
     __slots__ = []
 
+    @property
+    def base(self):
+        """Return the most basic possible representation of this geometry.
+
+        For single geometries, the basic representation is itself.
+        """
+        return self
+
     def disjoint(self, other):
         """Return whether two geometries are spatially disjoint.
 
@@ -91,6 +99,17 @@ class Collection(Geometry):
         self.items = set()
         if items:
             self.items = set(tuple(items))
+
+    @property
+    def base(self):
+        """Return the most basic possible representation of this geometry.
+
+        For collections with a single member, the basic representation is that
+        member as a single geometry.  Otherwise, it is the entire collection.
+        """
+        if len(self) == 1:
+            return self.items[0]
+        return self
 
     def __len__(self):
         return len(self.items)
@@ -257,6 +276,7 @@ class Point(Geometry):
         return (self.x, self.y)
 
     def intersection(self, other):
+        other = other.base
         if isinstance(other, Point):
             return self if self == other else None
 
@@ -268,6 +288,7 @@ class Point(Geometry):
         This is True if and only if the point lies within the interior
         or boundary of the other geometry.
         """
+        other = other.base
         if isinstance(other, Point):
             return self == other
 
@@ -279,13 +300,80 @@ class Point(Geometry):
         This is True if and only if the point does not lie within any interior
         or boundary of the other geometry.
         """
+        other = other.base
         if isinstance(other, Point):
             return self != other
 
         return not other.intersects(self)
 
+    def touches(self, other):
+        """Return whether the point touches some geometry.
+
+        This is true if the point lies in the boundary of the other geometry,
+        but false otherwise.
+
+        By this definition, it is impossible for a point to 'touch' another
+        point, because points have no boundary.
+        """
+        other = other.base
+        if isinstance(other, Point):
+            return False
+
+        return other.touches(self)
+
+    def crosses(self, other):
+        """Return whether the point crosses some geometry.
+
+        This is always false for a single point, regardless of what the other
+        geometry is.
+        """
+        return False
+
+    def contains(self, other):
+        """Return whether this point contains some geometry.
+
+        This is true if the other geometry has no points exterior to this
+        point, which can only be true if the other geometry is also a point,
+        and is equal to this one.
+        """
+        other = other.base
+        return (isinstance(other, Point) and self.nearly_equal(other))
+
+    def covers(self, other):
+        """Return whether this point covers some geometry.
+
+        This is true if the other geometry lies entirely within this point,
+        which can only be true if the other geometry is also a point, and is
+        equal to this one.
+        """
+        other = other.base
+        return (isinstance(other, Point) and self.nearly_equal(other))
+
+    def within(self, other):
+        """Return whether this point is within some geometry.
+
+        This is true if the point lies in the interior of the other geometry,
+        not the boundary.  So for point/point, it is only true when the points
+        are equal.  For point/line, it is only true if the point lies along the
+        line but isn't equal to either endpoint.
+        """
+        other = other.base
+        if isinstance(other, Point):
+            return self.nearly_equal(other)
+
+        return other.contains(self)
+
+    def overlaps(self, other):
+        """Return whether this point overlaps some geometry.
+
+        This is always false for single points, regardless of what the other
+        geometry is.
+        """
+        return False
+
     def distance(self, other):
         """Return the Euclidean distance between two points."""
+        other = other.base
         if self == other:
             return 0
         try:
