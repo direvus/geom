@@ -19,9 +19,10 @@ class GeomTestCase(unittest.TestCase):
 
 
 class TestPoint(GeomTestCase):
-    def test_point_eq(self):
+    def test_eq(self):
         self.assertEqual(P((1, 1)), P((1.0, 1.0)))
         self.assertNotEqual(P((1, 1)), P((1.0001, 1.0)))
+        self.assertNotEqual(P((1, 1)), L((1, 1), (2, 2)))
 
     def test_intersects_point(self):
         a = P((1, 1))
@@ -78,6 +79,86 @@ class TestPoint(GeomTestCase):
         self.assertFalse(f(P((1.0, 1.0))))
         self.assertFalse(f(P((1.00001, 1.0))))
         self.assertFalse(f(P((-1, -1))))
+
+    def test_intersects_line(self):
+        a = P((1, 1))
+        f = a.intersects
+        self.assertTrue(f(L((1.0, 1.0), (2, 2))))
+        self.assertTrue(f(L((-1, -1.0), (2, 2))))
+        self.assertTrue(f(L((0, 1), (1, 1))))
+        self.assertTrue(f(L((1, 2), (1, -4))))
+        self.assertFalse(f(L((1.00001, 1.0), (2, 2))))
+        self.assertFalse(f(L((1, 0), (2, 2))))
+
+    def test_disjoint_line(self):
+        a = P((1, 1))
+        f = a.disjoint
+        self.assertFalse(f(L((1.0, 1.0), (2, 2))))
+        self.assertFalse(f(L((-1, -1.0), (2, 2))))
+        self.assertFalse(f(L((0, 1), (1, 1))))
+        self.assertFalse(f(L((1, 2), (1, -4))))
+        self.assertTrue(f(L((1.00001, 1.0), (2, 2))))
+        self.assertTrue(f(L((1, 0), (2, 2))))
+
+    def test_touches_line(self):
+        a = P((1, 1))
+        f = a.touches
+        self.assertTrue(f(L((1.0, 1.0), (2, 2))))
+        self.assertFalse(f(L((-1, -1.0), (2, 2))))
+        self.assertTrue(f(L((0, 1), (1, 1))))
+        self.assertFalse(f(L((1, 2), (1, -4))))
+        self.assertFalse(f(L((1.00001, 1.0), (2, 2))))
+        self.assertFalse(f(L((1, 0), (2, 2))))
+
+    def test_crosses_line(self):
+        a = P((1, 1))
+        f = a.crosses
+        self.assertFalse(f(L((1.0, 1.0), (2, 2))))
+        self.assertFalse(f(L((-1, -1.0), (2, 2))))
+        self.assertFalse(f(L((0, 1), (1, 1))))
+        self.assertFalse(f(L((1, 2), (1, -4))))
+        self.assertFalse(f(L((1.00001, 1.0), (2, 2))))
+        self.assertFalse(f(L((1, 0), (2, 2))))
+
+    def test_contains_line(self):
+        a = P((1, 1))
+        f = a.contains
+        self.assertFalse(f(L((1.0, 1.0), (2, 2))))
+        self.assertFalse(f(L((-1, -1.0), (2, 2))))
+        self.assertFalse(f(L((0, 1), (1, 1))))
+        self.assertFalse(f(L((1, 2), (1, -4))))
+        self.assertFalse(f(L((1.00001, 1.0), (2, 2))))
+        self.assertFalse(f(L((1, 0), (2, 2))))
+
+    def test_covers_line(self):
+        a = P((1, 1))
+        f = a.contains
+        self.assertFalse(f(L((1.0, 1.0), (2, 2))))
+        self.assertFalse(f(L((-1, -1.0), (2, 2))))
+        self.assertFalse(f(L((0, 1), (1, 1))))
+        self.assertFalse(f(L((1, 2), (1, -4))))
+        self.assertFalse(f(L((1.00001, 1.0), (2, 2))))
+        self.assertFalse(f(L((1, 0), (2, 2))))
+
+    def test_within_line(self):
+        a = P((1, 1))
+        f = a.within
+        self.assertFalse(f(L((1.0, 1.0), (2, 2))))
+        self.assertTrue(f(L((-1, -1.0), (2, 2))))
+        self.assertFalse(f(L((0, 1), (1, 1))))
+        self.assertTrue(f(L((1, 2), (1, -4))))
+        self.assertFalse(f(L((1.00001, 1.0), (2, 2))))
+        self.assertFalse(f(L((1, 0), (2, 2))))
+
+    def test_overlaps_line(self):
+        a = P((1, 1))
+        f = a.overlaps
+        self.assertFalse(f(L((1.0, 1.0), (2, 2))))
+        self.assertFalse(f(L((-1, -1.0), (2, 2))))
+        self.assertFalse(f(L((0, 1), (1, 1))))
+        self.assertFalse(f(L((1, 2), (1, -4))))
+        self.assertFalse(f(L((1.00001, 1.0), (2, 2))))
+        self.assertFalse(f(L((1, 0), (2, 2))))
 
 
 class TestLine(GeomTestCase):

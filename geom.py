@@ -319,6 +319,9 @@ class Point(Geometry):
         if isinstance(other, Point):
             return False
 
+        if isinstance(other, Line):
+            return self.nearly_equal(other.a) or self.nearly_equal(other.b)
+
         return other.touches(self)
 
     def crosses(self, other):
@@ -361,6 +364,11 @@ class Point(Geometry):
         if isinstance(other, Point):
             return self.nearly_equal(other)
 
+        if isinstance(other, Line):
+            return (
+                    self.intersects(other)
+                    and not self.nearly_equal(other.a)
+                    and not self.nearly_equal(other.b))
         return other.contains(self)
 
     def overlaps(self, other):

@@ -13,8 +13,9 @@ Extended 9-Intersection Model](https://en.wikipedia.org/wiki/DE-9IM) (DE-9IM):
 - intersects
 - touches
 - crosses
-- within
 - contains
+- covers
+- within
 - overlaps
 
 # Data Model
@@ -57,3 +58,4 @@ The following tables indicate which spatial functions are implemented in the cod
 |              |              | equals | disjoint | intersects | touches | crosses | contains | covers | within | overlaps |
 | ------------ | ------------ | ------ | -------- | ---------- | ------- | ------- | ------ | -------- |
 | Point        | Point        | ✔      | ✔        | ✔          | ✔       | ✔       | ✔        | ✔      | ✔      | ✔        |
+| Point        | Line         | ✔      | ✔        | ✔          | ✔       | ✔       | ✔        | ✔      | ✔      | ✔        |
