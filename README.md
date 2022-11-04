@@ -56,6 +56,6 @@ the LICENSE file at the top level of the source code repository.
 The following tables indicate which spatial functions are implemented in the code and covered by tests.
 
 |              |              | equals | disjoint | intersects | touches | crosses | contains | covers | within | overlaps |
-| ------------ | ------------ | ------ | -------- | ---------- | ------- | ------- | ------ | -------- |
+| ------------ | ------------ | ------ | -------- | ---------- | ------- | ------- | -------- | ------ | ------ | -------- |
 | Point        | Point        | ✔      | ✔        | ✔          | ✔       | ✔       | ✔        | ✔      | ✔      | ✔        |
 | Point        | Line         | ✔      | ✔        | ✔          | ✔       | ✔       | ✔        | ✔      | ✔      | ✔        |
