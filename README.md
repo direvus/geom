@@ -49,3 +49,11 @@ relations, you will probably want to use [PostGIS](https://postgis.net).
 
 This project is licensed under the MIT license, a copy of which can be found in
 the LICENSE file at the top level of the source code repository.
+
+# Implementation Coverage
+
+The following tables indicate which spatial functions are implemented in the code and covered by tests.
+
+|              |              | equals | disjoint | intersects | touches | crosses | within | overlaps |
+| ------------ | ------------ | ------ | -------- | ---------- | ------- | ------- | ------ | -------- |
+| Point        | Point        | ✔      | ✔       | ✔          |         |         |        |          | 
