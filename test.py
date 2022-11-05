@@ -20,9 +20,18 @@ class GeomTestCase(unittest.TestCase):
 
 class TestPoint(GeomTestCase):
     def test_eq(self):
+        """Tests __eq__ / == simple equality, not spatial equality."""
         self.assertEqual(P((1, 1)), P((1.0, 1.0)))
         self.assertNotEqual(P((1, 1)), P((1.0001, 1.0)))
         self.assertNotEqual(P((1, 1)), L((1, 1), (2, 2)))
+
+    def test_equals_point(self):
+        a = P((1, 1))
+        f = a.equals
+        self.assertTrue(f(P((1.0, 1.0))))
+        self.assertTrue(f(P((1.0000000000000001, 0.9999999999999))))
+        self.assertFalse(f(P((1.0001, 1.0))))
+        self.assertFalse(f(P((1, 2))))
 
     def test_intersects_point(self):
         a = P((1, 1))
@@ -79,6 +88,16 @@ class TestPoint(GeomTestCase):
         self.assertFalse(f(P((1.0, 1.0))))
         self.assertFalse(f(P((1.00001, 1.0))))
         self.assertFalse(f(P((-1, -1))))
+
+    def test_equals_line(self):
+        a = P((1, 1))
+        f = a.equals
+        self.assertFalse(f(L((1.0, 1.0), (2, 2))))
+        self.assertFalse(f(L((-1, -1.0), (2, 2))))
+        self.assertFalse(f(L((0, 1), (1, 1))))
+        self.assertFalse(f(L((1, 2), (1, -4))))
+        self.assertFalse(f(L((1.00001, 1.0), (2, 2))))
+        self.assertFalse(f(L((1, 0), (2, 2))))
 
     def test_intersects_line(self):
         a = P((1, 1))
@@ -159,6 +178,19 @@ class TestPoint(GeomTestCase):
         self.assertFalse(f(L((1, 2), (1, -4))))
         self.assertFalse(f(L((1.00001, 1.0), (2, 2))))
         self.assertFalse(f(L((1, 0), (2, 2))))
+
+    def test_equals_polygon(self):
+        a = P((1, 1))
+        f = a.equals
+        # Point outside the polygon
+        self.assertFalse(f(Pg([(0, 0), (3, 1), (3, 0)])))
+        self.assertFalse(f(Pg([(0.0001, 0), (2, 2), (2, 0)])))
+        # On vertex
+        self.assertFalse(f(Pg([(-1, 1), (1, 1), (0, -2)])))
+        # On edge
+        self.assertFalse(f(Pg([(0, 0), (2, 2), (2, 0)])))
+        # In interior
+        self.assertFalse(f(Pg([(0, 0), (0, 3), (5, 2)])))
 
     def test_intersects_polygon(self):
         a = P((1, 1))
@@ -263,6 +295,7 @@ class TestPoint(GeomTestCase):
         self.assertFalse(f(Pg([(0, 0), (2, 2), (2, 0)])))
         # In interior
         self.assertFalse(f(Pg([(0, 0), (0, 3), (5, 2)])))
+
 
 class TestLine(GeomTestCase):
     def test_constructor(self):
@@ -498,7 +531,7 @@ class TestLine(GeomTestCase):
         self.assertEqual(
                 a.intersection_line(L((4, 0), (0, 3))),
                 L((0, 3), (4, 0)))
-        self.assertTrue(a.intersection_line(L((0, 0), (5, 5))).nearly_equal(
+        self.assertTrue(a.intersection_line(L((0, 0), (5, 5))).equals(
                 P(12/7, 12/7)))
         self.assertEqual(
                 a.intersection_line(L((4, 0), (-2, 1))),

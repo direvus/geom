@@ -55,19 +55,24 @@ the LICENSE file at the top level of the source code repository.
 
 The following tables indicate which spatial functions are implemented in the code and covered by tests.
 
+A check mark ✔ means that the feature is implemented and covered by tests.
+
+A tilde ~ means that the feature is implemented but not tested.
+
+
 |              |              | equals | disjoint | intersects | touches | crosses | contains | covers | within | overlaps |
 | ------------ | ------------ | ------ | -------- | ---------- | ------- | ------- | -------- | ------ | ------ | -------- |
-| Point        | Point        |        | ✔        | ✔          | ✔       | ✔       | ✔        | ✔      | ✔      | ✔        |
-| Point        | Line         |        | ✔        | ✔          | ✔       | ✔       | ✔        | ✔      | ✔      | ✔        |
-| Point        | Polygon      |        | ✔        | ✔          | ✔       | ✔       | ✔        | ✔      | ✔      | ✔        |
-| Point        | BoundingBox  |        |          |            |         |         |          |        |        |          |
-| Point        | MultiPoint   |        |          |            |         |         |          |        |        |          |
-| Point        | MultiLine    |        |          |            |         |         |          |        |        |          |
-| Point        | MultiPolygon |        |          |            |         |         |          |        |        |          |
-| Line         | Point        |        |          |            |         |         |          |        |        |          |
-| Line         | Line         |        |          |            |         |         |          |        |        |          |
-| Line         | Polygon      |        |          |            |         |         |          |        |        |          |
-| Line         | BoundingBox  |        |          |            |         |         |          |        |        |          |
+| Point        | Point        | ✔      | ✔        | ✔          | ✔       | ✔       | ✔        | ✔      | ✔      | ✔        |
+| Point        | Line         | ✔      | ✔        | ✔          | ✔       | ✔       | ✔        | ✔      | ✔      | ✔        |
+| Point        | Polygon      | ✔      | ✔        | ✔          | ✔       | ✔       | ✔        | ✔      | ✔      | ✔        |
+| Point        | BoundingBox  | ~      | ~        | ~          |         |         |          |        |        |          |
+| Point        | MultiPoint   | ~      |          |            |         |         |          |        |        |          |
+| Point        | MultiLine    | ~      |          |            |         |         |          |        |        |          |
+| Point        | MultiPolygon | ~      |          |            |         |         |          |        |        |          |
+| Line         | Point        | ~      |          |            |         |         |          |        |        |          |
+| Line         | Line         | ~      | ~        | ~          |         |         |          |        |        |          |
+| Line         | Polygon      |        | ~        | ~          |         |         |          |        |        |          |
+| Line         | BoundingBox  |        | ~        | ~          |         |         |          |        |        |          |
 | Line         | MultiPoint   |        |          |            |         |         |          |        |        |          |
 | Line         | MultiLine    |        |          |            |         |         |          |        |        |          |
 | Line         | MultiPolygon |        |          |            |         |         |          |        |        |          |

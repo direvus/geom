@@ -281,10 +281,15 @@ class Point(Geometry):
             other = Point(other)
         return self.as_tuple() == other.as_tuple()
 
-    def nearly_equal(self, other):
-        """Return whether this point is nearly equal to another."""
-        if other is None:
+    def close(self, other):
+        """Return whether this point is 'close' to another.
+
+        In this case, 'close' is shorthand for 'close enough to be considered
+        equal, given the quirks of binary floating point math'.
+        """
+        if other is None or not isinstance(other, Geometry):
             return False
+        other = other.base
         if isinstance(other, (Line, Shape)):
             return False
         if not isinstance(other, Point):
@@ -313,7 +318,7 @@ class Point(Geometry):
 
         return self if other.intersects(self) else None
 
-    def equals(self, other):
+    def equals(self, other) -> bool:
         """Return whether the point is spatially equal to some geometry.
 
         This is not the same thing as the simple equality you get with the
@@ -322,7 +327,16 @@ class Point(Geometry):
         Two geometries are spatially equal if their interiors intersect, and no
         part of the interior or boundary of one geometry intersects the
         exterior of the other.
+
+        In the case of a point, it can only be spatially equal to another
+        point, as anything else would necessarily intersect with the exterior
+        of the point.
         """
+        if isinstance(other, Geometry):
+            other = other.base
+        else:
+            other = Point(other)
+        return isinstance(other, Point) and self.close(other)
 
     def intersects(self, other):
         """Return whether the point intersects some geometry.
@@ -332,7 +346,7 @@ class Point(Geometry):
         """
         other = other.base
         if isinstance(other, Point):
-            return self == other
+            return self.equals(other)
 
         return other.intersects(self)
 
@@ -344,7 +358,7 @@ class Point(Geometry):
         """
         other = other.base
         if isinstance(other, Point):
-            return self != other
+            return not self.equals(other)
 
         return not other.intersects(self)
 
@@ -362,7 +376,7 @@ class Point(Geometry):
             return False
 
         if isinstance(other, Line):
-            return self.nearly_equal(other.a) or self.nearly_equal(other.b)
+            return self.equals(other.a) or self.equals(other.b)
 
         if isinstance(other, Polygon):
             return any([self.intersects(x) for x in other.lines])
@@ -385,7 +399,7 @@ class Point(Geometry):
         and is equal to this one.
         """
         other = other.base
-        return (isinstance(other, Point) and self.nearly_equal(other))
+        return (isinstance(other, Point) and self.equals(other))
 
     def covers(self, other):
         """Return whether this point covers some geometry.
@@ -395,7 +409,7 @@ class Point(Geometry):
         equal to this one.
         """
         other = other.base
-        return (isinstance(other, Point) and self.nearly_equal(other))
+        return (isinstance(other, Point) and self.equals(other))
 
     def within(self, other):
         """Return whether this point is within some geometry.
@@ -407,13 +421,13 @@ class Point(Geometry):
         """
         other = other.base
         if isinstance(other, Point):
-            return self.nearly_equal(other)
+            return self.equals(other)
 
         if isinstance(other, Line):
             return (
                     self.intersects(other)
-                    and not self.nearly_equal(other.a)
-                    and not self.nearly_equal(other.b))
+                    and not self.equals(other.a)
+                    and not self.equals(other.b))
 
         if isinstance(other, Polygon):
             if self.disjoint(other):
@@ -484,7 +498,7 @@ class Line(Geometry):
         self.a = Point(a)
         self.b = Point(b)
 
-        if self.a.nearly_equal(b):
+        if self.a.equals(b):
             raise ValueError("Invalid line: the two points are too close.")
 
     @property
@@ -535,15 +549,15 @@ class Line(Geometry):
 
     def relative_angle(self, other):
         """Return the relative angle between this line and another line.
-        
-        The relative angle is given as a number of radians between π and -π, and
-        is the amount of counter-clockwise rotation you would apply to this
-        line, anchored at its start point, in order for it to parallel the other
-        line.
+
+        The relative angle is given as a number of radians between π and -π,
+        and is the amount of counter-clockwise rotation you would apply to this
+        line, anchored at its start point, in order for it to parallel the
+        other line.
         """
-        if self.a.nearly_equal(other.a) and self.b.nearly_equal(other.b):
+        if self.a.equals(other.a) and self.b.equals(other.b):
             return 0
-        if self.a.nearly_equal(other.b) and self.b.nearly_equal(other.a):
+        if self.a.equals(other.b) and self.b.equals(other.a):
             return π
         return normalise_angle(other.angle - self.angle)
 
@@ -901,24 +915,16 @@ class Line(Geometry):
             return False
         return (self.a, self.b) == (other.a, other.b)
 
-    def nearly_equal(self, other):
-        """Return whether two lines are nearly equal.
-
-        Two lines are considered nearly equal if their endpoints are nearly
-        equal.  They do not need to have the same direction.
+    def equals(self, other):
+        """Return whether this line is spatially equal to some other geometry.
         """
         if not isinstance(other, Line):
-            return False
-        return ((
-                    self.a.nearly_equal(other.a) and
-                    self.b.nearly_equal(other.b)
-                ) or (
-                    self.a.nearly_equal(other.b) and
-                    self.b.nearly_equal(other.a)
-                ))
+            raise NotImplementedError()
+        return ((self.a.equals(other.a) and self.b.equals(other.b))
+                or (self.a.equals(other.b) and self.b.equals(other.a)))
 
     def coterminous(self, other):
-        """Return whether the two lines have the same endpoints.
+        """Return whether the two lines have exactly the same endpoints.
 
         Two lines are coterminous if they share the same set of endpoints.  The
         lines need not have the same direction.
@@ -1173,7 +1179,7 @@ class BoundingBox(Shape):
                     a = sect
                 if boundary.in_bound(b) is False:
                     b = sect
-                if a.nearly_equal(b):
+                if a.equals(b):
                     return a
         return Line(a, b)
 
@@ -1182,7 +1188,7 @@ class BoundingBox(Shape):
 
         The result can be None, a Point, a Line or a BoundingBox.
         """
-        if self == other or self.nearly_equal(other):
+        if self.equals(other):
             return self
 
         if self.disjoint(other):
@@ -1220,9 +1226,11 @@ class BoundingBox(Shape):
     def __hash__(self):
         return hash(tuple('BoundingBox') + self.as_tuple())
 
-    def nearly_equal(self, other):
+    def equals(self, other) -> bool:
+        """Return whether this box is spatially equal to some other geometry.
+        """
         if not isinstance(other, BoundingBox):
-            return False
+            raise NotImplementedError()
         z = zip(self.as_tuple(), other.as_tuple())
         return all([float_close(a, b) for a, b in z])
 
@@ -1317,7 +1325,8 @@ class Polygon(Shape):
         raise TypeError()
 
     def __contains__(self, point):
-        """Return whether 'point' is nearly equal to any of the polygon's vertices.
+        """Return whether 'point' is spatially equal to any of the polygon's
+        vertices.
 
         Despite the name of the Python magic method, this doesn't test
         "containment" in the geometric sense, but rather it tests *membership*.
@@ -1325,7 +1334,7 @@ class Polygon(Shape):
         contains().
         """
         p = Point(point)
-        return any([p.nearly_equal(x) for x in self.points])
+        return any([p.equals(x) for x in self.points])
 
     def __str__(self):
         return " → ".join(map(str, self.points))
