@@ -918,6 +918,9 @@ class Line(Geometry):
     def equals(self, other):
         """Return whether this line is spatially equal to some other geometry.
         """
+        other = other.base
+        if isinstance(other, Point):
+            return False
         if not isinstance(other, Line):
             raise NotImplementedError()
         return ((self.a.equals(other.a) and self.b.equals(other.b))

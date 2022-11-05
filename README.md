@@ -69,8 +69,8 @@ A tilde ~ means that the feature is implemented but not tested.
 | Point        | MultiPoint   | ~      |          |            |         |         |          |        |        |          |
 | Point        | MultiLine    | ~      |          |            |         |         |          |        |        |          |
 | Point        | MultiPolygon | ~      |          |            |         |         |          |        |        |          |
-| Line         | Point        | ~      |          |            |         |         |          |        |        |          |
-| Line         | Line         | ~      | ~        | ~          |         |         |          |        |        |          |
+| Line         | Point        | ✔      | ~        | ✔          |         |         |          |        |        |          |
+| Line         | Line         | ✔      | ~        | ✔          |         |         |          |        |        |          |
 | Line         | Polygon      |        | ~        | ~          |         |         |          |        |        |          |
 | Line         | BoundingBox  |        | ~        | ~          |         |         |          |        |        |          |
 | Line         | MultiPoint   |        |          |            |         |         |          |        |        |          |

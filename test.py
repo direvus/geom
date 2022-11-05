@@ -493,46 +493,93 @@ class TestLine(GeomTestCase):
         self.assertPointEqual(a.extrapolate_intersection(b), expect)
         self.assertPointEqual(b.extrapolate_intersection(a), expect)
 
-    def test_intersects_point(self):
+    def test_equals_point(self):
         # Vertical
         line = L((3, 3), (3, 4))
-        self.assertTrue(line.intersects_point(P(3, 3.5)))
-        self.assertFalse(line.intersects_point(P(4, 3)))
+        f = line.equals
+        self.assertFalse(f(P(3, 3.5)))
+        self.assertFalse(f(P(4, 3)))
 
         # Horizontal
         line = L((-2, -2), (2, -2))
-        self.assertTrue(line.intersects_point(P(0, -2)))
-        self.assertFalse(line.intersects_point(P(0, -1.999)))
+        f = line.equals
+        self.assertFalse(f(P(0, -2)))
+        self.assertFalse(f(P(0, -1.999)))
 
         # Other
         line = L((0, 0), (2, 2))
-        self.assertTrue(line.intersects_point(P(1, 1)))
-        self.assertFalse(line.intersects_point(P(3, 3)))
+        f = line.equals
+        self.assertFalse(f(P(1, 1)))
+        self.assertFalse(f(P(3, 3)))
+
+    def test_intersects_point(self):
+        # Vertical
+        line = L((3, 3), (3, 4))
+        f = line.intersects
+        self.assertTrue(f(P(3, 3.5)))
+        self.assertFalse(f(P(4, 3)))
+
+        # Horizontal
+        line = L((-2, -2), (2, -2))
+        f = line.intersects
+        self.assertTrue(f(P(0, -2)))
+        self.assertFalse(f(P(0, -1.999)))
+
+        # Other
+        line = L((0, 0), (2, 2))
+        f = line.intersects
+        self.assertTrue(f(P(1, 1)))
+        self.assertFalse(f(P(3, 3)))
+
+    def test_equals_line(self):
+        # Vertical
+        line = L((3, 3), (3, 4))
+        f = line.equals
+        self.assertFalse(f(L((3, 3), (3.1, 4))))
+        self.assertTrue(f(L((3, 3), (3, 4))))
+        self.assertTrue(f(L((3, 4), (3, 3))))
+
+        # Horizontal
+        line = L((-2, -2), (2, -2))
+        f = line.equals
+        self.assertFalse(f(L((0, -2), (2, -2))))
+        self.assertFalse(f(L((-2, -2), (2, -2.0001))))
+        self.assertTrue(f(L((-2.0, -2), (2, -2))))
+        self.assertTrue(f(L((2.0, -2), (-2, -2))))
+
+        # Other
+        line = L((0, 0), (2, 2))
+        f = line.equals
+        self.assertFalse(f(P(1, 1)))
+        self.assertFalse(f(P(3, 3)))
 
     def test_intersects_line(self):
         # Vertical
         a = L((3, 3), (3, 5))
-        self.assertFalse(a.intersects_line(L((4, 3), (4, 5))))
-        self.assertFalse(a.intersects_line(L((0, 2), (4, 2))))
-        self.assertTrue(a.intersects_line(L((3, 3), (4, 4))))
-        self.assertTrue(a.intersects_line(L((0, 1), (5, 6))))
-        self.assertTrue(a.intersects_line(L((3, 4), (3, 6))))
+        f = a.intersects
+        self.assertFalse(f(L((4, 3), (4, 5))))
+        self.assertFalse(f(L((0, 2), (4, 2))))
+        self.assertTrue(f(L((3, 3), (4, 4))))
+        self.assertTrue(f(L((0, 1), (5, 6))))
+        self.assertTrue(f(L((3, 4), (3, 6))))
 
         # Horizontal
         a = L((3, 3), (-1, 3))
-        self.assertFalse(a.intersects_line(L((-1, 2), (5, 2))))
-        self.assertFalse(a.intersects_line(L((0, 2), (0, 0))))
-        self.assertTrue(a.intersects_line(L((3, 3), (4, 4))))
-        self.assertTrue(a.intersects_line(L((0, 0), (1, 5))))
-        self.assertTrue(a.intersects_line(L((0, 3), (1, 3))))
+        f = a.intersects
+        self.assertFalse(f(L((-1, 2), (5, 2))))
+        self.assertFalse(f(L((0, 2), (0, 0))))
+        self.assertTrue(f(L((3, 3), (4, 4))))
+        self.assertTrue(f(L((0, 0), (1, 5))))
+        self.assertTrue(f(L((0, 3), (1, 3))))
 
         # Other
         a = L((0, 3), (4, 0))
-        self.assertFalse(a.intersects_line(L((0, 0), (4, -3))))
-        self.assertFalse(a.intersects_line(L((-1, 0), (0, 5))))
-        self.assertTrue(a.intersects_line(L((0, 0), (5, 5))))
-        self.assertTrue(a.intersects_line(L((4, 0), (-2, 1))))
-        self.assertTrue(a.intersects_line(L((2, 1.5), (-2, 4.5))))
+        f = a.intersects
+        self.assertFalse(f(L((0, 0), (4, -3))))
+        self.assertFalse(f(L((-1, 0), (0, 5))))
+        self.assertTrue(f(L((0, 0), (5, 5))))
+        self.assertTrue(f(L((4, 0), (-2, 1))))
+        self.assertTrue(f(L((2, 1.5), (-2, 4.5))))
 
     def test_intersection_line(self):
         # Vertical
