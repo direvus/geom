@@ -296,6 +296,45 @@ class TestPoint(GeomTestCase):
         # In interior
         self.assertFalse(f(Pg([(0, 0), (0, 3), (5, 2)])))
 
+    def test_equals_bbox(self):
+        a = P((1, 1))
+        f = a.equals
+        # Point outside the box
+        self.assertFalse(f(B(2, 0, 4, 4)))
+        self.assertFalse(f(B(2, -4, 4, 0)))
+        # On vertex
+        self.assertFalse(f(B(1, 1, 3, 3)))
+        # On edge
+        self.assertFalse(f(B(1, 0, 3, 3)))
+        # In interior
+        self.assertFalse(f(B(0, 0, 5, 4)))
+
+    def test_intersects_bbox(self):
+        a = P((1, 1))
+        f = a.intersects
+        # Point outside the box
+        self.assertFalse(f(B(2, 0, 4, 4)))
+        self.assertFalse(f(B(2, -4, 4, 0)))
+        # On vertex
+        self.assertTrue(f(B(1, 1, 3, 3)))
+        # On edge
+        self.assertTrue(f(B(1, 0, 3, 3)))
+        # In interior
+        self.assertTrue(f(B(0, 0, 5, 4)))
+
+    def test_disjoint_bbox(self):
+        a = P((1, 1))
+        f = a.disjoint
+        # Point outside the box
+        self.assertTrue(f(B(2, 0, 4, 4)))
+        self.assertTrue(f(B(2, -4, 4, 0)))
+        # On vertex
+        self.assertFalse(f(B(1, 1, 3, 3)))
+        # On edge
+        self.assertFalse(f(B(1, 0, 3, 3)))
+        # In interior
+        self.assertFalse(f(B(0, 0, 5, 4)))
+
 
 class TestLine(GeomTestCase):
     def test_constructor(self):
