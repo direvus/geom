@@ -531,6 +531,25 @@ class TestLine(GeomTestCase):
         self.assertTrue(f(P(1, 1)))
         self.assertFalse(f(P(3, 3)))
 
+    def test_disjoint_point(self):
+        # Vertical
+        line = L((3, 3), (3, 4))
+        f = line.disjoint
+        self.assertFalse(f(P(3, 3.5)))
+        self.assertTrue(f(P(4, 3)))
+
+        # Horizontal
+        line = L((-2, -2), (2, -2))
+        f = line.disjoint
+        self.assertFalse(f(P(0, -2)))
+        self.assertTrue(f(P(0, -1.999)))
+
+        # Other
+        line = L((0, 0), (2, 2))
+        f = line.disjoint
+        self.assertFalse(f(P(1, 1)))
+        self.assertTrue(f(P(3, 3)))
+
     def test_equals_line(self):
         # Vertical
         line = L((3, 3), (3, 4))
@@ -580,6 +599,34 @@ class TestLine(GeomTestCase):
         self.assertTrue(f(L((0, 0), (5, 5))))
         self.assertTrue(f(L((4, 0), (-2, 1))))
         self.assertTrue(f(L((2, 1.5), (-2, 4.5))))
+
+    def test_disjoint_line(self):
+        # Vertical
+        a = L((3, 3), (3, 5))
+        f = a.disjoint
+        self.assertTrue(f(L((4, 3), (4, 5))))
+        self.assertTrue(f(L((0, 2), (4, 2))))
+        self.assertFalse(f(L((3, 3), (4, 4))))
+        self.assertFalse(f(L((0, 1), (5, 6))))
+        self.assertFalse(f(L((3, 4), (3, 6))))
+
+        # Horizontal
+        a = L((3, 3), (-1, 3))
+        f = a.disjoint
+        self.assertTrue(f(L((-1, 2), (5, 2))))
+        self.assertTrue(f(L((0, 2), (0, 0))))
+        self.assertFalse(f(L((3, 3), (4, 4))))
+        self.assertFalse(f(L((0, 0), (1, 5))))
+        self.assertFalse(f(L((0, 3), (1, 3))))
+
+        # Other
+        a = L((0, 3), (4, 0))
+        f = a.disjoint
+        self.assertTrue(f(L((0, 0), (4, -3))))
+        self.assertTrue(f(L((-1, 0), (0, 5))))
+        self.assertFalse(f(L((0, 0), (5, 5))))
+        self.assertFalse(f(L((4, 0), (-2, 1))))
+        self.assertFalse(f(L((2, 1.5), (-2, 4.5))))
 
     def test_intersection_line(self):
         # Vertical
