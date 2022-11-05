@@ -60,3 +60,14 @@ The following tables indicate which spatial functions are implemented in the cod
 | Point        | Point        | ✔      | ✔        | ✔          | ✔       | ✔       | ✔        | ✔      | ✔      | ✔        |
 | Point        | Line         | ✔      | ✔        | ✔          | ✔       | ✔       | ✔        | ✔      | ✔      | ✔        |
 | Point        | Polygon      | ✔      | ✔        | ✔          | ✔       | ✔       | ✔        | ✔      | ✔      | ✔        |
+| Point        | BoundingBox  |        |          |            |         |         |          |        |        |          |
+| Point        | MultiPoint   |        |          |            |         |         |          |        |        |          |
+| Point        | MultiLine    |        |          |            |         |         |          |        |        |          |
+| Point        | MultiPolygon |        |          |            |         |         |          |        |        |          |
+| Line         | Point        |        |          |            |         |         |          |        |        |          |
+| Line         | Line         |        |          |            |         |         |          |        |        |          |
+| Line         | Polygon      |        |          |            |         |         |          |        |        |          |
+| Line         | BoundingBox  |        |          |            |         |         |          |        |        |          |
+| Line         | MultiPoint   |        |          |            |         |         |          |        |        |          |
+| Line         | MultiLine    |        |          |            |         |         |          |        |        |          |
+| Line         | MultiPolygon |        |          |            |         |         |          |        |        |          |
