@@ -57,9 +57,9 @@ The following tables indicate which spatial functions are implemented in the cod
 
 |              |              | equals | disjoint | intersects | touches | crosses | contains | covers | within | overlaps |
 | ------------ | ------------ | ------ | -------- | ---------- | ------- | ------- | -------- | ------ | ------ | -------- |
-| Point        | Point        | ✔      | ✔        | ✔          | ✔       | ✔       | ✔        | ✔      | ✔      | ✔        |
-| Point        | Line         | ✔      | ✔        | ✔          | ✔       | ✔       | ✔        | ✔      | ✔      | ✔        |
-| Point        | Polygon      | ✔      | ✔        | ✔          | ✔       | ✔       | ✔        | ✔      | ✔      | ✔        |
+| Point        | Point        |        | ✔        | ✔          | ✔       | ✔       | ✔        | ✔      | ✔      | ✔        |
+| Point        | Line         |        | ✔        | ✔          | ✔       | ✔       | ✔        | ✔      | ✔      | ✔        |
+| Point        | Polygon      |        | ✔        | ✔          | ✔       | ✔       | ✔        | ✔      | ✔      | ✔        |
 | Point        | BoundingBox  |        |          |            |         |         |          |        |        |          |
 | Point        | MultiPoint   |        |          |            |         |         |          |        |        |          |
 | Point        | MultiLine    |        |          |            |         |         |          |        |        |          |
