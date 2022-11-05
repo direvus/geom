@@ -628,6 +628,128 @@ class TestLine(GeomTestCase):
         self.assertFalse(f(L((4, 0), (-2, 1))))
         self.assertFalse(f(L((2, 1.5), (-2, 4.5))))
 
+    def test_intersects_polygon(self):
+        # Vertical
+        a = L((3, 3), (3, 5))
+        f = a.intersects
+        # Outside
+        self.assertFalse(f(Pg([(4, 3), (4, 5), (6, 4)])))
+        # Inside
+        self.assertTrue(f(Pg([(2, 0), (2, 7), (8, 4)])))
+        # Endpoint on vertex
+        self.assertTrue(f(Pg([(3, 3), (4, 0), (2, 0)])))
+        # Crossing a vertex
+        self.assertTrue(f(Pg([(3, 4), (4, 5), (4, 0)])))
+        # Touching boundary
+        self.assertTrue(f(Pg([(0, 3), (5, 3), (3, 1)])))
+        # On boundary
+        self.assertTrue(f(Pg([(3, 2), (3, 6), (5, 4)])))
+        # Crossing
+        self.assertTrue(f(Pg([(2, 4), (8, 4), (8, 3)])))
+        # Boundary to boundary
+        self.assertTrue(f(Pg([(2, 5), (5, 5), (2, 2)])))
+
+        # Horizontal
+        a = L((3, 3), (-1, 3))
+        f = a.intersects
+        # Outside
+        self.assertFalse(f(Pg([(4, 3), (4, 5), (6, 4)])))
+        # Inside
+        self.assertTrue(f(Pg([(-2, 0), (-2, 7), (8, 4)])))
+        # Endpoint on vertex
+        self.assertTrue(f(Pg([(3, 3), (4, 0), (2, 0)])))
+        # Crossing a vertex
+        self.assertTrue(f(Pg([(-1, 0), (0, 3), (4, 0)])))
+        # Touching boundary
+        self.assertTrue(f(Pg([(0, 0), (5, 5), (5, 1)])))
+        # On boundary
+        self.assertTrue(f(Pg([(-3, 3), (5, 3), (0, 0)])))
+        # Crossing
+        self.assertTrue(f(Pg([(-1, 0), (2, 4), (3, 0)])))
+        # Boundary to boundary
+        self.assertTrue(f(Pg([(-1, -1), (-1, 5), (5, 5)])))
+
+        # Other
+        a = L((0, 3), (4, 0))
+        f = a.intersects
+        # Outside
+        self.assertFalse(f(Pg([(4, 3), (4, 5), (6, 4)])))
+        # Inside
+        self.assertTrue(f(Pg([(-2, 0), (-2, 7), (8, -1)])))
+        # Endpoint on vertex
+        self.assertTrue(f(Pg([(4, 0), (4, 2), (6, 0)])))
+        # Crossing a vertex
+        self.assertTrue(f(Pg([(3, 3/4), (3, 4), (6, 2)])))
+        # Touching boundary
+        self.assertTrue(f(Pg([(4, -1), (4, 5), (5, 1)])))
+        # On boundary
+        self.assertTrue(f(Pg([(8, -3), (-4, -3), (-4, 6)])))
+        # Crossing
+        self.assertTrue(f(Pg([(0, 2), (3, 2), (0, 0)])))
+        # Boundary to boundary
+        self.assertTrue(f(Pg([(-1, 3), (4, 3), (4, -5)])))
+
+    def test_disjoint_polygon(self):
+        # Vertical
+        a = L((3, 3), (3, 5))
+        f = a.disjoint
+        # Outside
+        self.assertTrue(f(Pg([(4, 3), (4, 5), (6, 4)])))
+        # Inside
+        self.assertFalse(f(Pg([(2, 0), (2, 7), (8, 4)])))
+        # Endpoint on vertex
+        self.assertFalse(f(Pg([(3, 3), (4, 0), (2, 0)])))
+        # Crossing a vertex
+        self.assertFalse(f(Pg([(3, 4), (4, 5), (4, 0)])))
+        # Touching boundary
+        self.assertFalse(f(Pg([(0, 3), (5, 3), (3, 1)])))
+        # On boundary
+        self.assertFalse(f(Pg([(3, 2), (3, 6), (5, 4)])))
+        # Crossing
+        self.assertFalse(f(Pg([(2, 4), (8, 4), (8, 3)])))
+        # Boundary to boundary
+        self.assertFalse(f(Pg([(2, 5), (5, 5), (2, 2)])))
+
+        # Horizontal
+        a = L((3, 3), (-1, 3))
+        f = a.disjoint
+        # Outside
+        self.assertTrue(f(Pg([(4, 3), (4, 5), (6, 4)])))
+        # Inside
+        self.assertFalse(f(Pg([(-2, 0), (-2, 7), (8, 4)])))
+        # Endpoint on vertex
+        self.assertFalse(f(Pg([(3, 3), (4, 0), (2, 0)])))
+        # Crossing a vertex
+        self.assertFalse(f(Pg([(-1, 0), (0, 3), (4, 0)])))
+        # Touching boundary
+        self.assertFalse(f(Pg([(0, 0), (5, 5), (5, 1)])))
+        # On boundary
+        self.assertFalse(f(Pg([(-3, 3), (5, 3), (0, 0)])))
+        # Crossing
+        self.assertFalse(f(Pg([(-1, 0), (2, 4), (3, 0)])))
+        # Boundary to boundary
+        self.assertFalse(f(Pg([(-1, -1), (-1, 5), (5, 5)])))
+
+        # Other
+        a = L((0, 3), (4, 0))
+        f = a.disjoint
+        # Outside
+        self.assertTrue(f(Pg([(4, 3), (4, 5), (6, 4)])))
+        # Inside
+        self.assertFalse(f(Pg([(-2, 0), (-2, 7), (8, -1)])))
+        # Endpoint on vertex
+        self.assertFalse(f(Pg([(4, 0), (4, 2), (6, 0)])))
+        # Crossing a vertex
+        self.assertFalse(f(Pg([(3, 3/4), (3, 4), (6, 2)])))
+        # Touching boundary
+        self.assertFalse(f(Pg([(4, -1), (4, 5), (5, 1)])))
+        # On boundary
+        self.assertFalse(f(Pg([(8, -3), (-4, -3), (-4, 6)])))
+        # Crossing
+        self.assertFalse(f(Pg([(0, 2), (3, 2), (0, 0)])))
+        # Boundary to boundary
+        self.assertFalse(f(Pg([(-1, 3), (4, 3), (4, -5)])))
+
     def test_intersection_line(self):
         # Vertical
         a = L((3, 3), (3, 5))
