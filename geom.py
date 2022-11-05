@@ -21,6 +21,20 @@ class Plot():
 
 
 class Geometry():
+    """A Geometry represents some division of a coordinate space.
+
+    Geometries in general divide the coordinate space into three categories:
+
+    - interior
+    - boundary
+    - exterior
+
+    Points are special in that they don't have any boundary, but otherwise all
+    geometries have an interior, a boundary and an exterior.
+
+    Spatial relationships between geometries are based on how their interiors,
+    boundaries and exteriors intersect with each other.
+    """
     __slots__ = []
 
     @property
@@ -30,6 +44,16 @@ class Geometry():
         For single geometries, the basic representation is itself.
         """
         return self
+
+    @property
+    def dimension(self) -> int:
+        """Return the dimension of the geometry as an integer.
+
+        0 - Point
+        1 - Line
+        2 - Shape
+        """
+        return self.DIMENSION
 
     def disjoint(self, other):
         """Return whether two geometries are spatially disjoint.
@@ -210,12 +234,13 @@ class Collection(Geometry):
 
 class Point(Geometry):
     """A Point represents a single location in space.
-    
+
     For the purposes of this library, a Point has no boundary, and is its own
     interior.  The exterior of the Point is all space that is not equal to the
     Point.
     """
     __slots__ = ['x', 'y']
+    DIMENSION = 0
 
     def __init__(self, *args):
         if len(args) == 1:
@@ -241,7 +266,13 @@ class Point(Geometry):
                     f"Invalid number of arguments for Point: {len(args)}.")
 
     def __eq__(self, other):
-        """Return whether this point is exactly equal to another."""
+        """Return whether this point is exactly equal to another.
+
+        Note that this is not the same thing as spatially equal.  This
+        function, and the == operator, test for strict simple equality
+        according to normal Python semantics.  The 'equals' method, on the
+        other hand, behaves as per the DE-9IM spatial predicate function.
+        """
         if other is None:
             return False
         if isinstance(other, (Line, Shape)):
@@ -281,6 +312,17 @@ class Point(Geometry):
             return self if self == other else None
 
         return self if other.intersects(self) else None
+
+    def equals(self, other):
+        """Return whether the point is spatially equal to some geometry.
+
+        This is not the same thing as the simple equality you get with the
+        __eq__ method and == operator.
+
+        Two geometries are spatially equal if their interiors intersect, and no
+        part of the interior or boundary of one geometry intersects the
+        exterior of the other.
+        """
 
     def intersects(self, other):
         """Return whether the point intersects some geometry.
@@ -436,6 +478,7 @@ class Line(Geometry):
     A Line has a direction -- it begins at point A and ends at point B.
     """
     __slots__ = ['a', 'b']
+    DIMENSION = 1
 
     def __init__(self, a, b):
         self.a = Point(a)
@@ -904,17 +947,10 @@ class Line(Geometry):
 
 
 class Shape(Geometry):
-    """A Shape is any geometry that has an interior.
-
-    A Shape divides the coordinate space into three categories:
-    - interior,
-    - exterior and
-    - boundary.
-
-    Any given point in the coordinate space either lies inside the Shape, on its
-    boundary, or outside the Shape.
+    """A Shape is any two-dimensional geometry that has an interior area.
     """
     __slots__ = []
+    DIMENSION = 2
 
     @property
     def bbox(self):
