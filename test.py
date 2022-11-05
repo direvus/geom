@@ -61,7 +61,7 @@ class TestPoint(GeomTestCase):
 
     def test_covers_point(self):
         a = P((1, 1))
-        f = a.contains
+        f = a.covers
         self.assertTrue(f(P((1.0, 1.0))))
         self.assertFalse(f(P((1.00001, 1.0))))
         self.assertFalse(f(P((-1, -1))))
@@ -132,7 +132,7 @@ class TestPoint(GeomTestCase):
 
     def test_covers_line(self):
         a = P((1, 1))
-        f = a.contains
+        f = a.covers
         self.assertFalse(f(L((1.0, 1.0), (2, 2))))
         self.assertFalse(f(L((-1, -1.0), (2, 2))))
         self.assertFalse(f(L((0, 1), (1, 1))))
@@ -160,6 +160,109 @@ class TestPoint(GeomTestCase):
         self.assertFalse(f(L((1.00001, 1.0), (2, 2))))
         self.assertFalse(f(L((1, 0), (2, 2))))
 
+    def test_intersects_polygon(self):
+        a = P((1, 1))
+        f = a.intersects
+        # Point outside the polygon
+        self.assertFalse(f(Pg([(0, 0), (3, 1), (3, 0)])))
+        self.assertFalse(f(Pg([(0.0001, 0), (2, 2), (2, 0)])))
+        # On vertex
+        self.assertTrue(f(Pg([(-1, 1), (1, 1), (0, -2)])))
+        # On edge
+        self.assertTrue(f(Pg([(0, 0), (2, 2), (2, 0)])))
+        # In interior
+        self.assertTrue(f(Pg([(0, 0), (0, 3), (5, 2)])))
+
+    def test_disjoint_polygon(self):
+        a = P((1, 1))
+        f = a.disjoint
+        # Point outside the polygon
+        self.assertTrue(f(Pg([(0, 0), (3, 1), (3, 0)])))
+        self.assertTrue(f(Pg([(0.0001, 0), (2, 2), (2, 0)])))
+        # On vertex
+        self.assertFalse(f(Pg([(-1, 1), (1, 1), (0, -2)])))
+        # On edge
+        self.assertFalse(f(Pg([(0, 0), (2, 2), (2, 0)])))
+        # In interior
+        self.assertFalse(f(Pg([(0, 0), (0, 3), (5, 2)])))
+
+    def test_touches_polygon(self):
+        a = P((1, 1))
+        f = a.touches
+        # Point outside the polygon
+        self.assertFalse(f(Pg([(0, 0), (3, 1), (3, 0)])))
+        self.assertFalse(f(Pg([(0.0001, 0), (2, 2), (2, 0)])))
+        # On vertex
+        self.assertTrue(f(Pg([(-1, 1), (1, 1), (0, -2)])))
+        # On edge
+        self.assertTrue(f(Pg([(0, 0), (2, 2), (2, 0)])))
+        # In interior
+        self.assertFalse(f(Pg([(0, 0), (0, 3), (5, 2)])))
+
+    def test_crosses_polygon(self):
+        a = P((1, 1))
+        f = a.crosses
+        # Point outside the polygon
+        self.assertFalse(f(Pg([(0, 0), (3, 1), (3, 0)])))
+        self.assertFalse(f(Pg([(0.0001, 0), (2, 2), (2, 0)])))
+        # On vertex
+        self.assertFalse(f(Pg([(-1, 1), (1, 1), (0, -2)])))
+        # On edge
+        self.assertFalse(f(Pg([(0, 0), (2, 2), (2, 0)])))
+        # In interior
+        self.assertFalse(f(Pg([(0, 0), (0, 3), (5, 2)])))
+
+    def test_contains_polygon(self):
+        a = P((1, 1))
+        f = a.contains
+        # Point outside the polygon
+        self.assertFalse(f(Pg([(0, 0), (3, 1), (3, 0)])))
+        self.assertFalse(f(Pg([(0.0001, 0), (2, 2), (2, 0)])))
+        # On vertex
+        self.assertFalse(f(Pg([(-1, 1), (1, 1), (0, -2)])))
+        # On edge
+        self.assertFalse(f(Pg([(0, 0), (2, 2), (2, 0)])))
+        # In interior
+        self.assertFalse(f(Pg([(0, 0), (0, 3), (5, 2)])))
+
+    def test_covers_polygon(self):
+        a = P((1, 1))
+        f = a.covers
+        # Point outside the polygon
+        self.assertFalse(f(Pg([(0, 0), (3, 1), (3, 0)])))
+        self.assertFalse(f(Pg([(0.0001, 0), (2, 2), (2, 0)])))
+        # On vertex
+        self.assertFalse(f(Pg([(-1, 1), (1, 1), (0, -2)])))
+        # On edge
+        self.assertFalse(f(Pg([(0, 0), (2, 2), (2, 0)])))
+        # In interior
+        self.assertFalse(f(Pg([(0, 0), (0, 3), (5, 2)])))
+
+    def test_within_polygon(self):
+        a = P((1, 1))
+        f = a.within
+        # Point outside the polygon
+        self.assertFalse(f(Pg([(0, 0), (3, 1), (3, 0)])))
+        self.assertFalse(f(Pg([(0.0001, 0), (2, 2), (2, 0)])))
+        # On vertex
+        self.assertFalse(f(Pg([(-1, 1), (1, 1), (0, -2)])))
+        # On edge
+        self.assertFalse(f(Pg([(0, 0), (2, 2), (2, 0)])))
+        # In interior
+        self.assertTrue(f(Pg([(0, 0), (0, 3), (5, 2)])))
+
+    def test_overlaps_polygon(self):
+        a = P((1, 1))
+        f = a.overlaps
+        # Point outside the polygon
+        self.assertFalse(f(Pg([(0, 0), (3, 1), (3, 0)])))
+        self.assertFalse(f(Pg([(0.0001, 0), (2, 2), (2, 0)])))
+        # On vertex
+        self.assertFalse(f(Pg([(-1, 1), (1, 1), (0, -2)])))
+        # On edge
+        self.assertFalse(f(Pg([(0, 0), (2, 2), (2, 0)])))
+        # In interior
+        self.assertFalse(f(Pg([(0, 0), (0, 3), (5, 2)])))
 
 class TestLine(GeomTestCase):
     def test_constructor(self):

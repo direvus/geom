@@ -322,6 +322,9 @@ class Point(Geometry):
         if isinstance(other, Line):
             return self.nearly_equal(other.a) or self.nearly_equal(other.b)
 
+        if isinstance(other, Polygon):
+            return any([self.intersects(x) for x in other.lines])
+
         return other.touches(self)
 
     def crosses(self, other):
@@ -369,6 +372,15 @@ class Point(Geometry):
                     self.intersects(other)
                     and not self.nearly_equal(other.a)
                     and not self.nearly_equal(other.b))
+
+        if isinstance(other, Polygon):
+            if self.disjoint(other):
+                return False
+            for line in other.lines:
+                if self.intersects(line):
+                    return False
+            return True
+
         return other.contains(self)
 
     def overlaps(self, other):

@@ -59,3 +59,4 @@ The following tables indicate which spatial functions are implemented in the cod
 | ------------ | ------------ | ------ | -------- | ---------- | ------- | ------- | -------- | ------ | ------ | -------- |
 | Point        | Point        | ✔      | ✔        | ✔          | ✔       | ✔       | ✔        | ✔      | ✔      | ✔        |
 | Point        | Line         | ✔      | ✔        | ✔          | ✔       | ✔       | ✔        | ✔      | ✔      | ✔        |
+| Point        | Polygon      | ✔      | ✔        | ✔          | ✔       | ✔       | ✔        | ✔      | ✔      | ✔        |
