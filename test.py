@@ -796,6 +796,116 @@ class TestLine(GeomTestCase):
         # Boundary to boundary
         self.assertFalse(f(Pg([(-1, 3), (4, 3), (4, -5)])))
 
+    def test_intersects_boundingbox(self):
+        # Vertical
+        a = L((3, 3), (3, 5))
+        f = a.intersects
+        # Outside
+        self.assertFalse(f(B(1, 0, 5, 2)))
+        # Inside
+        self.assertTrue(f(B(2, 2, 6, 6)))
+        # Endpoint on corner
+        self.assertTrue(f(B(3, 1, 6, 3)))
+        # Touching boundary
+        self.assertTrue(f(B(1, 1, 5, 3)))
+        # On boundary
+        self.assertTrue(f(B(3, 1, 4, 6)))
+        # Crossing
+        self.assertTrue(f(B(1, 2, 4, 4)))
+        # Boundary to boundary
+        self.assertTrue(f(B(1, 3, 5, 5)))
+
+        # Horizontal
+        a = L((3, 3), (-1, 3))
+        f = a.intersects
+        # Outside
+        self.assertFalse(f(B(0, 0, 1, 1)))
+        # Inside
+        self.assertTrue(f(B(-2, 0, 4, 4)))
+        # Endpoint on corner
+        self.assertTrue(f(B(-3, 0, -1, 3)))
+        # Touching boundary
+        self.assertTrue(f(B(3, 1, 5, 5)))
+        # On boundary
+        self.assertTrue(f(B(-2, 3, 5, 5)))
+        # Crossing
+        self.assertTrue(f(B(0, 0, 1, 4)))
+        # Boundary to boundary
+        self.assertTrue(f(B(-1, 0, 3, 4)))
+
+        # Other
+        a = L((0, 3), (4, 0))
+        f = a.intersects
+        # Outside
+        self.assertFalse(f(B(-1, -2, 1, 1)))
+        # Inside
+        self.assertTrue(f(B(-1, -1, 5, 5)))
+        # Endpoint on corner
+        self.assertTrue(f(B(-2, 0, 0, 3)))
+        # Crossing a corner
+        self.assertTrue(f(B(-1, -1, 3, 3/4)))
+        # Touching boundary
+        self.assertTrue(f(B(3, -1, 6, 0)))
+        # Crossing
+        self.assertTrue(f(B(1, 1, 3, 3)))
+        # Boundary to boundary
+        self.assertTrue(f(B(0, 0, 6, 6)))
+
+    def test_disjoint_boundingbox(self):
+        # Vertical
+        a = L((3, 3), (3, 5))
+        f = a.disjoint
+        # Outside
+        self.assertTrue(f(B(1, 0, 5, 2)))
+        # Inside
+        self.assertFalse(f(B(2, 2, 6, 6)))
+        # Endpoint on corner
+        self.assertFalse(f(B(3, 1, 6, 3)))
+        # Touching boundary
+        self.assertFalse(f(B(1, 1, 5, 3)))
+        # On boundary
+        self.assertFalse(f(B(3, 1, 4, 6)))
+        # Crossing
+        self.assertFalse(f(B(1, 2, 4, 4)))
+        # Boundary to boundary
+        self.assertFalse(f(B(1, 3, 5, 5)))
+
+        # Horizontal
+        a = L((3, 3), (-1, 3))
+        f = a.disjoint
+        # Outside
+        self.assertTrue(f(B(0, 0, 1, 1)))
+        # Inside
+        self.assertFalse(f(B(-2, 0, 4, 4)))
+        # Endpoint on corner
+        self.assertFalse(f(B(-3, 0, -1, 3)))
+        # Touching boundary
+        self.assertFalse(f(B(3, 1, 5, 5)))
+        # On boundary
+        self.assertFalse(f(B(-2, 3, 5, 5)))
+        # Crossing
+        self.assertFalse(f(B(0, 0, 1, 4)))
+        # Boundary to boundary
+        self.assertFalse(f(B(-1, 0, 3, 4)))
+
+        # Other
+        a = L((0, 3), (4, 0))
+        f = a.disjoint
+        # Outside
+        self.assertTrue(f(B(-1, -2, 1, 1)))
+        # Inside
+        self.assertFalse(f(B(-1, -1, 5, 5)))
+        # Endpoint on corner
+        self.assertFalse(f(B(-2, 0, 0, 3)))
+        # Crossing a corner
+        self.assertFalse(f(B(-1, -1, 3, 3/4)))
+        # Touching boundary
+        self.assertFalse(f(B(3, -1, 6, 0)))
+        # Crossing
+        self.assertFalse(f(B(1, 1, 3, 3)))
+        # Boundary to boundary
+        self.assertFalse(f(B(0, 0, 6, 6)))
+
     def test_intersection_line(self):
         # Vertical
         a = L((3, 3), (3, 5))
