@@ -132,7 +132,7 @@ class Collection(Geometry):
         member as a single geometry.  Otherwise, it is the entire collection.
         """
         if len(self) == 1:
-            return self.items[0]
+            return tuple(self.items)[0]
         return self
 
     def __len__(self):
