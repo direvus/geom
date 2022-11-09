@@ -335,11 +335,103 @@ class TestPoint(GeomTestCase):
         # In interior
         self.assertFalse(f(B(0, 0, 5, 4)))
 
+    def test_crosses_bbox(self):
+        a = P((1, 1))
+        f = a.crosses
+        # Point outside the box
+        self.assertFalse(f(B(2, 0, 4, 4)))
+        self.assertFalse(f(B(2, -4, 4, 0)))
+        # On vertex
+        self.assertFalse(f(B(1, 1, 3, 3)))
+        # On edge
+        self.assertFalse(f(B(1, 0, 3, 3)))
+        # In interior
+        self.assertFalse(f(B(0, 0, 5, 4)))
+
+    def test_contains_bbox(self):
+        a = P((1, 1))
+        f = a.contains
+        # Point outside the box
+        self.assertFalse(f(B(2, 0, 4, 4)))
+        self.assertFalse(f(B(2, -4, 4, 0)))
+        # On vertex
+        self.assertFalse(f(B(1, 1, 3, 3)))
+        # On edge
+        self.assertFalse(f(B(1, 0, 3, 3)))
+        # In interior
+        self.assertFalse(f(B(0, 0, 5, 4)))
+
+    def test_covers_bbox(self):
+        a = P((1, 1))
+        f = a.covers
+        # Point outside the box
+        self.assertFalse(f(B(2, 0, 4, 4)))
+        self.assertFalse(f(B(2, -4, 4, 0)))
+        # On vertex
+        self.assertFalse(f(B(1, 1, 3, 3)))
+        # On edge
+        self.assertFalse(f(B(1, 0, 3, 3)))
+        # In interior
+        self.assertFalse(f(B(0, 0, 5, 4)))
+
+    def test_overlaps_bbox(self):
+        a = P((1, 1))
+        f = a.overlaps
+        # Point outside the box
+        self.assertFalse(f(B(2, 0, 4, 4)))
+        self.assertFalse(f(B(2, -4, 4, 0)))
+        # On vertex
+        self.assertFalse(f(B(1, 1, 3, 3)))
+        # On edge
+        self.assertFalse(f(B(1, 0, 3, 3)))
+        # In interior
+        self.assertFalse(f(B(0, 0, 5, 4)))
+
     def test_equals_multipoint(self):
         a = P((1, 1))
         f = a.equals
         self.assertTrue(f(MP([(1.0, 1.0)])))
         self.assertTrue(f(MP([(1.0000000000000001, 0.9999999999999)])))
+        self.assertFalse(f(MP([(1.0001, 1.0)])))
+        self.assertFalse(f(MP([(1, 2)])))
+        self.assertFalse(f(MP([(1, 1), (2, 2)])))
+        self.assertFalse(f(MP([(0, 0), (2, 2)])))
+
+    def test_crosses_multipoint(self):
+        a = P((1, 1))
+        f = a.crosses
+        self.assertFalse(f(MP([(1.0, 1.0)])))
+        self.assertFalse(f(MP([(1.0000000000000001, 0.9999999999999)])))
+        self.assertFalse(f(MP([(1.0001, 1.0)])))
+        self.assertFalse(f(MP([(1, 2)])))
+        self.assertFalse(f(MP([(1, 1), (2, 2)])))
+        self.assertFalse(f(MP([(0, 0), (2, 2)])))
+
+    def test_contains_multipoint(self):
+        a = P((1, 1))
+        f = a.contains
+        self.assertTrue(f(MP([(1.0, 1.0)])))
+        self.assertTrue(f(MP([(1.0000000000000001, 0.9999999999999)])))
+        self.assertFalse(f(MP([(1.0001, 1.0)])))
+        self.assertFalse(f(MP([(1, 2)])))
+        self.assertFalse(f(MP([(1, 1), (2, 2)])))
+        self.assertFalse(f(MP([(0, 0), (2, 2)])))
+
+    def test_covers_multipoint(self):
+        a = P((1, 1))
+        f = a.covers
+        self.assertTrue(f(MP([(1.0, 1.0)])))
+        self.assertTrue(f(MP([(1.0000000000000001, 0.9999999999999)])))
+        self.assertFalse(f(MP([(1.0001, 1.0)])))
+        self.assertFalse(f(MP([(1, 2)])))
+        self.assertFalse(f(MP([(1, 1), (2, 2)])))
+        self.assertFalse(f(MP([(0, 0), (2, 2)])))
+
+    def test_overlaps_multipoint(self):
+        a = P((1, 1))
+        f = a.overlaps
+        self.assertFalse(f(MP([(1.0, 1.0)])))
+        self.assertFalse(f(MP([(1.0000000000000001, 0.9999999999999)])))
         self.assertFalse(f(MP([(1.0001, 1.0)])))
         self.assertFalse(f(MP([(1, 2)])))
         self.assertFalse(f(MP([(1, 1), (2, 2)])))
@@ -360,9 +452,153 @@ class TestPoint(GeomTestCase):
             ])))
         self.assertFalse(f(ML([L((1, 2), (1, -4))])))
 
+    def test_crosses_multiline(self):
+        a = P((1, 1))
+        f = a.crosses
+        self.assertFalse(f(ML([L((1.0, 1.0), (2, 2))])))
+        self.assertFalse(f(ML([L((-1, -1.0), (2, 2))])))
+        self.assertFalse(f(ML([L((0, 1), (1, 1))])))
+        self.assertFalse(f(ML([L((1, 2), (1, -4))])))
+        self.assertFalse(f(ML([L((1.00001, 1.0), (2, 2))])))
+        self.assertFalse(f(ML([L((1, 0), (2, 2))])))
+        self.assertFalse(f(ML([
+            L((0, 1), (1, 1)),
+            L((1, 0), (2, 2)),
+            ])))
+        self.assertFalse(f(ML([L((1, 2), (1, -4))])))
+
+    def test_contains_multiline(self):
+        a = P((1, 1))
+        f = a.contains
+        self.assertFalse(f(ML([L((1.0, 1.0), (2, 2))])))
+        self.assertFalse(f(ML([L((-1, -1.0), (2, 2))])))
+        self.assertFalse(f(ML([L((0, 1), (1, 1))])))
+        self.assertFalse(f(ML([L((1, 2), (1, -4))])))
+        self.assertFalse(f(ML([L((1.00001, 1.0), (2, 2))])))
+        self.assertFalse(f(ML([L((1, 0), (2, 2))])))
+        self.assertFalse(f(ML([
+            L((0, 1), (1, 1)),
+            L((1, 0), (2, 2)),
+            ])))
+        self.assertFalse(f(ML([L((1, 2), (1, -4))])))
+
+    def test_covers_multiline(self):
+        a = P((1, 1))
+        f = a.covers
+        self.assertFalse(f(ML([L((1.0, 1.0), (2, 2))])))
+        self.assertFalse(f(ML([L((-1, -1.0), (2, 2))])))
+        self.assertFalse(f(ML([L((0, 1), (1, 1))])))
+        self.assertFalse(f(ML([L((1, 2), (1, -4))])))
+        self.assertFalse(f(ML([L((1.00001, 1.0), (2, 2))])))
+        self.assertFalse(f(ML([L((1, 0), (2, 2))])))
+        self.assertFalse(f(ML([
+            L((0, 1), (1, 1)),
+            L((1, 0), (2, 2)),
+            ])))
+        self.assertFalse(f(ML([L((1, 2), (1, -4))])))
+
+    def test_overlaps_multiline(self):
+        a = P((1, 1))
+        f = a.overlaps
+        self.assertFalse(f(ML([L((1.0, 1.0), (2, 2))])))
+        self.assertFalse(f(ML([L((-1, -1.0), (2, 2))])))
+        self.assertFalse(f(ML([L((0, 1), (1, 1))])))
+        self.assertFalse(f(ML([L((1, 2), (1, -4))])))
+        self.assertFalse(f(ML([L((1.00001, 1.0), (2, 2))])))
+        self.assertFalse(f(ML([L((1, 0), (2, 2))])))
+        self.assertFalse(f(ML([
+            L((0, 1), (1, 1)),
+            L((1, 0), (2, 2)),
+            ])))
+        self.assertFalse(f(ML([L((1, 2), (1, -4))])))
+
     def test_equals_multipolygon(self):
         a = P((1, 1))
         f = a.equals
+        # Point outside the polygon
+        self.assertFalse(f(MPg([[(0, 0), (3, 1), (3, 0)]])))
+        self.assertFalse(f(MPg([[(0.0001, 0), (2, 2), (2, 0)]])))
+        # On vertex
+        self.assertFalse(f(MPg([[(-1, 1), (1, 1), (0, -2)]])))
+        # On edge
+        self.assertFalse(f(MPg([[(0, 0), (2, 2), (2, 0)]])))
+        # In interior
+        self.assertFalse(f(MPg([[(0, 0), (0, 3), (5, 2)]])))
+
+        self.assertFalse(f(MPg([
+            [(0, 0), (3, 1), (3, 0)],
+            [(0.0001, 0), (2, 2), (2, 0)],
+            [(-1, 1), (1, 1), (0, -2)],
+            [(0, 0), (2, 2), (2, 0)],
+            [(0, 0), (0, 3), (5, 2)],
+            ])))
+
+    def test_crosses_multipolygon(self):
+        a = P((1, 1))
+        f = a.crosses
+        # Point outside the polygon
+        self.assertFalse(f(MPg([[(0, 0), (3, 1), (3, 0)]])))
+        self.assertFalse(f(MPg([[(0.0001, 0), (2, 2), (2, 0)]])))
+        # On vertex
+        self.assertFalse(f(MPg([[(-1, 1), (1, 1), (0, -2)]])))
+        # On edge
+        self.assertFalse(f(MPg([[(0, 0), (2, 2), (2, 0)]])))
+        # In interior
+        self.assertFalse(f(MPg([[(0, 0), (0, 3), (5, 2)]])))
+
+        self.assertFalse(f(MPg([
+            [(0, 0), (3, 1), (3, 0)],
+            [(0.0001, 0), (2, 2), (2, 0)],
+            [(-1, 1), (1, 1), (0, -2)],
+            [(0, 0), (2, 2), (2, 0)],
+            [(0, 0), (0, 3), (5, 2)],
+            ])))
+
+    def test_contains_multipolygon(self):
+        a = P((1, 1))
+        f = a.contains
+        # Point outside the polygon
+        self.assertFalse(f(MPg([[(0, 0), (3, 1), (3, 0)]])))
+        self.assertFalse(f(MPg([[(0.0001, 0), (2, 2), (2, 0)]])))
+        # On vertex
+        self.assertFalse(f(MPg([[(-1, 1), (1, 1), (0, -2)]])))
+        # On edge
+        self.assertFalse(f(MPg([[(0, 0), (2, 2), (2, 0)]])))
+        # In interior
+        self.assertFalse(f(MPg([[(0, 0), (0, 3), (5, 2)]])))
+
+        self.assertFalse(f(MPg([
+            [(0, 0), (3, 1), (3, 0)],
+            [(0.0001, 0), (2, 2), (2, 0)],
+            [(-1, 1), (1, 1), (0, -2)],
+            [(0, 0), (2, 2), (2, 0)],
+            [(0, 0), (0, 3), (5, 2)],
+            ])))
+
+    def test_covers_multipolygon(self):
+        a = P((1, 1))
+        f = a.covers
+        # Point outside the polygon
+        self.assertFalse(f(MPg([[(0, 0), (3, 1), (3, 0)]])))
+        self.assertFalse(f(MPg([[(0.0001, 0), (2, 2), (2, 0)]])))
+        # On vertex
+        self.assertFalse(f(MPg([[(-1, 1), (1, 1), (0, -2)]])))
+        # On edge
+        self.assertFalse(f(MPg([[(0, 0), (2, 2), (2, 0)]])))
+        # In interior
+        self.assertFalse(f(MPg([[(0, 0), (0, 3), (5, 2)]])))
+
+        self.assertFalse(f(MPg([
+            [(0, 0), (3, 1), (3, 0)],
+            [(0.0001, 0), (2, 2), (2, 0)],
+            [(-1, 1), (1, 1), (0, -2)],
+            [(0, 0), (2, 2), (2, 0)],
+            [(0, 0), (0, 3), (5, 2)],
+            ])))
+
+    def test_overlaps_multipolygon(self):
+        a = P((1, 1))
+        f = a.overlaps
         # Point outside the polygon
         self.assertFalse(f(MPg([[(0, 0), (3, 1), (3, 0)]])))
         self.assertFalse(f(MPg([[(0.0001, 0), (2, 2), (2, 0)]])))
