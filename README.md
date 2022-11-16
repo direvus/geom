@@ -43,8 +43,10 @@ Python 3, preferably 3.8+, standard library only.
 This library was written for self-education and fun.  I don't expect it will
 be novel or even really useful to anybody except me.
 
-If you're looking for a fully-fledged implementation of the OGC spatial
-relations, you will probably want to use [PostGIS](https://postgis.net).
+If you're looking for a fully-baked geometry implementation in Python, you
+probably want [Shapely](https://shapely.readthedocs.io/en/latest/index.html).
+If you're looking for geometric functions in a relational database, go for
+[PostGIS](https://postgis.net).
 
 # License
 
